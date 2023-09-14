@@ -1,0 +1,23 @@
+LUM
+25,b
+D,Major
+true
+musicxml
+qz up
+key
+D/f#
+
+G
+
+A
+
+
+G
+D/f#/F#
+
+G
+
+A
+
+
+G
