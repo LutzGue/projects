@@ -5,6 +5,8 @@ true
 musicxml
 qz up
 key
+120 bpm
+4/4
 D/f#
 
 G
