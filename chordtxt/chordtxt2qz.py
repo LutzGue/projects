@@ -41,7 +41,7 @@ Next steps:
 
 # Define the path to the chordtxt file to parse
 # You can edit this variable
-file_name = 'D:/OneDrive/Musik-Projekte/rikky_rooksby_songwriting/txt/25a.txt'
+file_name = '/txt/25a.txt'
 
 # Define the notes (7 Stammtöne)
 notes_basic = ['C', 'D', 'E', 'F', 'G', 'A', 'B']

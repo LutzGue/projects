@@ -1,0 +1,22 @@
+lum
+25,a
+G,Major
+false
+musicxml
+qz up
+key
+G
+
+
+
+C+/e
+
+
+
+D/f#
+
+
+
+Cdim/eb/Gb
+
+
