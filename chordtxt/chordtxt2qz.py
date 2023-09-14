@@ -26,22 +26,23 @@ representing a chord and returns a dictionary with detailed information about th
 ---------------------------------------
 Next steps:
 1) IN PROGRESS -- Add Error Handling: try / except
-2) IN PROGRESS --  Add docstrings to the functions to explain what they do, what parameters they take, and what they return.
+2) IN PROGRESS -- Add docstrings to the functions to explain what they do, what parameters they take, and what they return.
 3) Variable Names: Some of the variable names (like actline and tmpactline) could be more descriptive. Clear variable names make your code easier to read and understand.
 4) DONE -- The chord types are defined in two places: once in the chords dictionary and once in the separate_chordroot_chordtype function. This redundancy could lead to errors or inconsistencies if you update the chord types in one place but forget to update them in the other. One way to eliminate this redundancy is to define your chord types in a single place and then reference that definition wherever you need it.
-5) Midi-Range-Config (min/max notes): a) for bass; b ) for chords
-6) Midi-Notes-Octaves calculation: needs to be in the defined range (see point no. 5)
+5) DONE -- Midi-Range-Config (min/max notes): a) for bass; b ) for chords
+6) IN PROGRESS -- Midi-Notes-Octaves calculation: needs to be in the defined range (see point no. 5)
 7) Legato-mode: tie common notes
-8) Meta-Informations: a) add tempo in BPM; b) add meter (e.g. 4/4, 3/4, 6/4)
+8) DONE -- Meta-Informations: a) add tempo in BPM; b) add meter (e.g. 4/4, 3/4, 6/4)
 9) Save into: a) MusicXML; b) MIDI
 10) Transpose into all Keys: a) QZ (up/down); b) chromatically (up/down)
+11) DONE -- Song-Pos in chord-list
 ---------------------------------------
 """
 ### INITIAL VARIABLES SECTION ###
 
 # Define the path to the chordtxt file to parse
 # You can edit this variable
-file_name = '/txt/25a.txt'
+file_name = 'txt\\87.txt'
 
 # Define the notes (7 Stammtöne)
 notes_basic = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
@@ -91,6 +92,19 @@ chords = {
     'M': ['R', 'M3', 'P5']
 }
 
+# Midi-Range-Config (min/max notes): a) for bass; b ) for chords
+# Midi-Notes-Octaves calculation: needs to be in the defined range
+midi_range_bass = {
+    'min': 'C0',
+    'max': 'E1'
+}
+
+# 
+midi_range_chords = {
+    'min': 'E1',
+    'max': 'E3'
+}
+
 ### FUNCTION SECTION ###
 
 def parse_file(fname):
@@ -103,26 +117,31 @@ def parse_file(fname):
     Returns:
     dict: A dictionary containing the song metadata and chords.
     """
+
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, fname)
+
     # Check if file exists
-    if not os.path.exists(fname):
-        print(f"File {fname} not found.")
+    if not os.path.exists(filename):
+        print(f"File {filename} not found.")
         return None
 
     # Define the meta information of the song in the dictionary and initialize values
     # You can maintain this list based on the schema in the chordtxt file
-    meta = ["author", "title", "key", "bassnote", "convertto", "type", "marker"]
+    meta = ["author", "title", "key", "bassnote", "convertto", "type", "marker", "tempo", "meter"]
 
     # Define song information based on previous meta fields and initialize values
     song = {metaitem: "" for metaitem in meta}
 
     # Add array for chords / pitches into the song schema and initialize values
+    song["pos"] = []
     song["chords"] = []
     song["pitches"] = []
 
     try:
 
         # Open the file and parse it
-        with codecs.open(fname, 'r', 'utf-8') as f:
+        with codecs.open(filename, 'r', 'utf-8') as f:
             lines = f.readlines()
             for i, line in enumerate(lines):
                 # Parse meta information and write into song schema
@@ -138,6 +157,7 @@ def parse_file(fname):
                     else: 
                         tmpactline = actline
 
+                    song["pos"].append(i - len(meta))
                     song["chords"].append(actline)
                     song["pitches"].append(parse_chord_string(actline))
                 
@@ -145,11 +165,11 @@ def parse_file(fname):
         return song
     
     except FileNotFoundError:
-        print(f"File {fname} not found.")
+        print(f"File {filename} not found.")
         return None
     
     except Exception as e:
-        print(f"Error reading file {fname}: {e}")
+        print(f"Error reading file {filename}: {e}")
         return None
 
 def get_note_number(note_name):
