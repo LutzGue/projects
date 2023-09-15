@@ -13,8 +13,8 @@ PROJECT: Generate chord progressions in MIDI and MusicXML file from a given chor
 ---------------------------------------
 My personal goal is to improve my skills in practical piano playing. For this, daily practice is important and to train a wide repertoire of established 
 chord progressions that are helpful for songwriting. I believe that with the muscle memory in the fingers, the feeling of playing live is made possible 
-and thus a creative environment is created to create new songs. I personally like to practice piano on my Midi-Keyboard using the App SYNTHESIA. For that purpose 
-i've started collecting and creating Midi files to open them in SYNTHESIA. But the adaptation of templates from books and various video tutorials and the preparation in MIDI editors 
+and thus a creative environment is created to create new songs. I personally like to practice piano on my Midi-Keyboard using the App ST. For that purpose 
+i've started collecting and creating Midi files to open them in ST. But the adaptation of templates from books and various video tutorials and the preparation in MIDI editors 
 is very time-consuming and i became unmotivated. First, I needed the simplest editor in which I could quickly capture the templates in a machine-readable format and decided on Notepad 
 in TXT format. In addition, I want to be flexible for modulation and train all transcribed examples in all keys in the circle of fifths upwards, downwards 
 and chromatically upwards and downwards. For transposing to other keys, a batch job is suitable, which I present in this Python script for parsing and analyzing 
@@ -34,23 +34,27 @@ Next steps:
 7) Legato-mode: tie common notes
 8) DONE -- Meta-Informations: a) add tempo in BPM; b) add meter (e.g. 4/4, 3/4, 6/4)
 9) Save into: a) MusicXML; b) MIDI
-10) Transpose into all Keys: a) QZ (up/down); b) chromatically (up/down)
+10) feature integration: Transpose into all Keys: a) QZ (up/down); b) chromatically (up/down)
 11) DONE -- Song-Pos in chord-list
+12) feature integration: SB import / export files
 ---------------------------------------
 """
 ### INITIAL VARIABLES SECTION ###
 
-# Define the path to the chordtxt file to parse
+# Define the path to the chordtxt import-file to parse
 # You can edit this variable
 file_name = 'txt\\87.txt'
 
 # Define the notes (7 Stammtöne)
 notes_basic = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
-# Define the 12 notes enharmonic EQUAL (sharp notation)
+# Define the 12 notes enharmonic EQUAL (in sharp notation)
 notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
-# Define the note values for each modifier. Conterts enharmonic CORRECT to enharmonic equal note numbers.
+# List of the enharmonic EQUAL note names (in sharp notation) and mapped to each note number:
+note_names = {1:"C", 2:"C#", 3:"D", 4:"D#", 5:"E", 6:"F", 7:"F#", 8:"G", 9:"G#", 10:"A", 11:"A#", 12:"B"}
+
+# Define the enharmonic CORRECT accidentals and map it to enharmonic EQUAL note numbers.
 note_values = {
     '###': [4, 6, 8, 9, 11, 1, 3],
     '##': [3, 5, 7, 8, 10, 12, 2],
@@ -59,22 +63,6 @@ note_values = {
     'b': [12, 2, 4, 5, 7, 9, 11],
     'bb': [11, 1, 3, 4, 6, 8, 10],
     'bbb': [10, 12, 2, 3, 5, 7, 9]
-}
-
-# Define the enharmonic EQUAL (in sharp notation) note names for each note value
-note_names = {
-    1:"C",
-    2:"C#",
-    3:"D",
-    4:"D#",
-    5:"E",
-    6:"F",
-    7:"F#",
-    8:"G",
-    9:"G#",
-    10:"A",
-    11:"A#",
-    12:"B"
 }
 
 # Define the chords unsing interval structure
@@ -94,16 +82,8 @@ chords = {
 
 # Midi-Range-Config (min/max notes): a) for bass; b ) for chords
 # Midi-Notes-Octaves calculation: needs to be in the defined range
-midi_range_bass = {
-    'min': 'C0',
-    'max': 'E1'
-}
-
-# 
-midi_range_chords = {
-    'min': 'E1',
-    'max': 'E3'
-}
+midi_range_bass = {'min': 'C0', 'max': 'E1'}
+midi_range_chords = {'min': 'E1', 'max': 'E3'}
 
 ### FUNCTION SECTION ###
 
@@ -128,7 +108,17 @@ def parse_file(fname):
 
     # Define the meta information of the song in the dictionary and initialize values
     # You can maintain this list based on the schema in the chordtxt file
-    meta = ["author", "title", "key", "bassnote", "convertto", "type", "marker", "tempo", "meter"]
+    meta = [
+        "author", 
+        "title", 
+        "key", 
+        "bassnote", 
+        "convertto", 
+        "type", 
+        "marker", 
+        "tempo", 
+        "meter"
+    ]
 
     # Define song information based on previous meta fields and initialize values
     song = {metaitem: "" for metaitem in meta}
