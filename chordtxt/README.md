@@ -1,4 +1,4 @@
-### Project
+# Project
 Generate chord progressions in MIDI and MusicXML file from a given chord progression in TXT format and provide transposing batch.
 ### Goal
 My personal goal is to improve my skills in practical piano playing. For this, daily practice is important and to train a wide repertoire of established 
