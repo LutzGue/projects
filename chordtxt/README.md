@@ -1,4 +1,5 @@
 # Project
+### Description
 Generate chord progressions in MIDI and MusicXML file from a given chord progression in TXT format and provide transposing batch.
 ### Goal
 My personal goal is to improve my skills in practical piano playing. For this, daily practice is important and to train a wide repertoire of established 
@@ -13,7 +14,7 @@ the chords within it. The parse_file function reads a song file and extracts met
 The get_note_number and get_note_name functions convert between note names (like 'C', 'D#', etc.) and their corresponding numerical values.
 The get_pitches function calculates the pitches of a chord based on its root note, chord type, and inversion. The parse_chord_string function takes a string 
 representing a chord and returns a dictionary with detailed information about the chord, including its root note, type, inversion, bass note, and the pitches it consists of.
-### Next steps:
+### Next Steps:
 1) IN PROGRESS -- Add Error Handling: try / except
 2) IN PROGRESS -- Add docstrings to the functions to explain what they do, what parameters they take, and what they return.
 3) Variable Names: Some of the variable names (like actline and tmpactline) could be more descriptive. Clear variable names make your code easier to read and understand.
