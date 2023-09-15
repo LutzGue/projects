@@ -5,8 +5,8 @@ Generate chord progressions in MIDI and MusicXML file from a given chord progres
 ### Goal
 My personal goal is to improve my skills in practical piano playing. For this, daily practice is important and to train a wide repertoire of established 
 chord progressions that are helpful for songwriting. I believe that with the muscle memory in the fingers, the feeling of playing live is made possible 
-and thus a creative environment is created to create new songs. I personally like to practice piano on my Midi-Keyboard using the App SYNTHESIA. For that purpose 
-i've started collecting and creating Midi files to open them in SYNTHESIA. But the adaptation of templates from books and various video tutorials and the preparation in MIDI editors 
+and thus a creative environment is created to create new songs. I personally like to practice piano on my Midi-Keyboard using the App ST. For that purpose 
+i've started collecting and creating Midi files to open them in ST. But the adaptation of templates from books and various video tutorials and the preparation in MIDI editors 
 is very time-consuming and i became unmotivated. First, I needed the simplest editor in which I could quickly capture the templates in a machine-readable format and decided on Notepad 
 in TXT format. In addition, I want to be flexible for modulation and train all transcribed examples in all keys in the circle of fifths upwards, downwards 
 and chromatically upwards and downwards. For transposing to other keys, a batch job is suitable, which I present in this Python script for parsing and analyzing 
@@ -27,4 +27,4 @@ representing a chord and returns a dictionary with detailed information about th
 9) Save into: a) MusicXML; b) MIDI
 10) feature integration: Transpose into all Keys: a) QZ (up/down); b) chromatically (up/down)
 11) DONE -- Song-Pos in chord-list
-12) feature integration: SESSION BAND APP import / export files
+12) feature integration: SB import / export files
