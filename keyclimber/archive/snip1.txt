@@ -1,0 +1,16 @@
+    # MusicXML-Datei importieren und transponieren
+    #score = converter.parse(import_filename)
+    #p0 = score.parts[0].pitches[0]
+    #print('x1:', p0)
+    #p0.transpose(7, inPlace=True)
+    #print('x2:', score.parts[0].pitches[0])
+    #s = tnc.parse().stream
+    #score.show("text")
+    #k = score.analyze('key')
+    #print('key:', k)
+    #i = interval.Interval(k.tonic, pitch.Pitch('C'))
+    #print('transpose to C:', i)
+    # Create an interval
+    #i = interval.ChromaticInterval(7)
+    #transposed_score = score.transpose(interval.ChromaticInterval(7))
+    #transposed_score.write('musicxml', fp=export_filename)
