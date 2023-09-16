@@ -28,3 +28,8 @@ representing a chord and returns a dictionary with detailed information about th
 10) feature integration: Transpose into all Keys: a) QZ (up/down); b) chromatically (up/down)
 11) DONE -- Song-Pos in chord-list
 12) feature integration: SB import / export files
+### *Project names:
+- ChordCaster: Progression Converter
+- ChordConvert: MIDI & MusicXML Transformer
+- ProgressionPivot: Chord Converter
+- ChordCraft

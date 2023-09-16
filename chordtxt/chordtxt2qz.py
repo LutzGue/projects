@@ -291,9 +291,35 @@ def separate_chordroot_chordtype(chord):
     # If no match found, return the whole chord as root and 'M' (for Major Triad) as default type
     return chord, 'M'
 
+def save_into_file(export_filename):
+    """
+    Stores the new chordprogression into musicxml / MXL / MIDI file.
+    """
+
+    # Define the chords
+    chords = ['C2 E3 G3 C4', 'G3 B3 D4', 'C4 E4 G4']
+
+    # Create a stream
+    s = stream.Stream()
+
+    # Add the chords to the stream
+    for c in chords:
+        ch = chord.Chord(c)
+        s.append(ch)
+
+    # Write to a MusicXML file
+    s.write('musicxml', fp=export_filename)
+
+    s.show("text")
+    s.show()
+
+    return "SUCCESS"
+
 ### CALL FUNCTIONS SECTION ###
 
 print(parse_file(file_name))
+
+print(save_into_file('chord_progression.mxl'))
 
 # Test the functions
 
