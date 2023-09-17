@@ -71,6 +71,7 @@ def import_transpose_midi(import_filename, export_filename):
 def import_transpose_musicxml(import_filename, export_filename):
     """
     Transposing song into key of C Major.
+    The transposed new part is appended to the existing part.
     """
     piece = converter.parse(import_filename)
     key = piece.analyze('key')
@@ -82,10 +83,21 @@ def import_transpose_musicxml(import_filename, export_filename):
         newpiece = piece.transpose(move)
         newkey = newpiece.analyze('key')
 
-    fp = newpiece.write('musicxml', fp=export_filename)
+    # Create a new stream to merge the original piece and the transposed piece
+    combined_piece = stream.Stream()
 
-    newpiece.show()
-    newpiece.show("text")
+    # Paste each element from the original piece into the new stream
+    for part in piece.parts:
+        combined_piece.append(part)
+
+    # Insert each element from the transposed piece into the new stream
+    for part in newpiece.parts:
+        combined_piece.append(part)
+
+    fp = combined_piece.write('musicxml', fp=export_filename)
+
+    combined_piece.show()
+    combined_piece.show("text")
 
     return "SUCCESS"
 
