@@ -14,3 +14,36 @@
     #i = interval.ChromaticInterval(7)
     #transposed_score = score.transpose(interval.ChromaticInterval(7))
     #transposed_score.write('musicxml', fp=export_filename)
+
+    #######################
+
+        # Create a new stream to merge the original piece and the transposed piece
+    combined_piece = stream.Stream()
+
+    # Paste each element from the original piece into the new stream
+    for part in piece.parts:
+        combined_piece.append(part)
+
+    # Insert each element from the transposed piece into the new stream
+    for part in newpiece.parts:
+        combined_piece.append(part)
+
+#######################
+
+    # Erstelle eine flache Kopie des Originalstücks
+    piece_copy = piece.flat
+
+    # Füge die Noten des transponierten Teils an das Ende des Originalteils an
+    for original_part, transposed_part in zip(piece_copy.parts, newpiece.parts):
+        for note in transposed_part.recurse().notes:
+            original_part.append(note)
+
+    fp = newpiece.write('musicxml', fp=export_filename)
+
+    newpiece.show()
+    newpiece.show("text")
+
+    return "SUCCESS"
+
+#####################
+

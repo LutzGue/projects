@@ -1,6 +1,6 @@
 import mido
 import os
-from music21 import * #import converter, interval
+from music21 import *
 
 """
 -------------------------
@@ -71,33 +71,41 @@ def import_transpose_midi(import_filename, export_filename):
 def import_transpose_musicxml(import_filename, export_filename):
     """
     Transposing song into key of C Major.
-    The transposed new part is appended to the existing part.
+    Python code that uses the Musik21 library to import a MusicXML file, 
+    transpose it, and append the transposed part to the end 
+    of the original.
     """
     piece = converter.parse(import_filename)
-    key = piece.analyze('key')
+
+    # Check format mxl
+    is_well_formed = piece.isWellFormedNotation()
+    print('is_well_formed: ', is_well_formed)
+
+    # Transpose to key: C Major / A Minor
+    orig_key = piece.analyze('key')
     target = pitch.Pitch('C')
-    if key.type == 'minor':
+    if orig_key.type == 'minor':
         target = pitch.Pitch('A')
-    if target.name != key.tonic.name:
-        move = interval.Interval(key.tonic, target)
+
+    # calculate interval to transpose
+    if target.name != orig_key.tonic.name:
+        move = interval.Interval(orig_key.tonic, target)
         newpiece = piece.transpose(move)
         newkey = newpiece.analyze('key')
+    
+    # Erstelle eine Tonart mit einem Kreuz (G-Dur oder E-Moll)
+    ks = key.KeySignature(-5)
 
-    # Create a new stream to merge the original piece and the transposed piece
-    combined_piece = stream.Stream()
+    # append the transposed part to the end of the original.
+    new_score = stream.Stream()
+    new_score.append([piece, newpiece])
 
-    # Paste each element from the original piece into the new stream
-    for part in piece.parts:
-        combined_piece.append(part)
+    # Save new combines file
+    new_score.write('musicxml', "transposed_score.mxl")
 
-    # Insert each element from the transposed piece into the new stream
-    for part in newpiece.parts:
-        combined_piece.append(part)
-
-    fp = combined_piece.write('musicxml', fp=export_filename)
-
-    combined_piece.show()
-    combined_piece.show("text")
+    # show new combined file.
+    new_score.show("text")
+    new_score.show()
 
     return "SUCCESS"
 
