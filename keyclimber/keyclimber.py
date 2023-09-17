@@ -92,9 +92,20 @@ def import_transpose_musicxml(import_filename, export_filename):
         move = interval.Interval(orig_key.tonic, target)
         newpiece = piece.transpose(move)
         newkey = newpiece.analyze('key')
+
+    # QZ transpose
+    ks = key.KeySignature(-5)
+    new_score_qz = stream.Stream()
+    new_score_qz.append([ks, newpiece])
+
+    new_score_qz.show("text")
+    new_score_qz.show()
+
+    print('------------')
+
     
     # Erstelle eine Tonart mit einem Kreuz (G-Dur oder E-Moll)
-    ks = key.KeySignature(-5)
+    
 
     # append the transposed part to the end of the original.
     new_score = stream.Stream()
