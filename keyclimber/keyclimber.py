@@ -75,41 +75,36 @@ def import_transpose_musicxml(import_filename, export_filename):
     transpose it, and append the transposed part to the end 
     of the original.
     """
-    piece = converter.parse(import_filename)
+    orig_piece = converter.parse(import_filename)
 
-    # Check format mxl
-    is_well_formed = piece.isWellFormedNotation()
+    # Check format mxl and analyze original key
+    is_well_formed = orig_piece.isWellFormedNotation()
     print('is_well_formed: ', is_well_formed)
-
-    # Transpose to key: C Major / A Minor
-    orig_key = piece.analyze('key')
-    target = pitch.Pitch('C')
+    orig_key = orig_piece.analyze('key')
+    print('orig_key:', orig_key)
+    
+    # Transpose to base key: C Major / A Minor
+    target_key = pitch.Pitch('C')
     if orig_key.type == 'minor':
-        target = pitch.Pitch('A')
+        target_key = pitch.Pitch('A')
 
-    # calculate interval to transpose
-    if target.name != orig_key.tonic.name:
-        move = interval.Interval(orig_key.tonic, target)
-        newpiece = piece.transpose(move)
-        newkey = newpiece.analyze('key')
+    # Calculate interval to transpose ti base key
+    if target_key.name != orig_key.tonic.name:
+        move = interval.Interval(orig_key.tonic, target_key)
+        base_piece = orig_piece.transpose(move)
 
-    # QZ transpose
-    ks = key.KeySignature(-5)
-    new_score_qz = stream.Stream()
-    new_score_qz.append([ks, newpiece])
+    # Check new transposed base key
+    base_key = base_piece.analyze('key')
+    print('base_key:', base_key)
 
-    new_score_qz.show("text")
-    new_score_qz.show()
+    move = interval.Interval('-P5')
+    transp_piece = base_piece.transpose(move)
 
-    print('------------')
-
+    #transp_piece.show()
     
-    # Erstelle eine Tonart mit einem Kreuz (G-Dur oder E-Moll)
-    
-
     # append the transposed part to the end of the original.
     new_score = stream.Stream()
-    new_score.append([piece, newpiece])
+    new_score.append([orig_piece, base_piece, transp_piece])
 
     # Save new combines file
     new_score.write('musicxml', "transposed_score.mxl")
