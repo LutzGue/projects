@@ -79,7 +79,7 @@ def import_transpose_musicxml(import_filename, export_filename):
 
     # Check format mxl and analyze original key
     is_well_formed = orig_piece.isWellFormedNotation()
-    print('is_well_formed: ', is_well_formed)
+    print('orig_piece: ', is_well_formed)
     orig_key = orig_piece.analyze('key')
     print('orig_key:', orig_key)
     
@@ -94,17 +94,23 @@ def import_transpose_musicxml(import_filename, export_filename):
         base_piece = orig_piece.transpose(move)
 
     # Check new transposed base key
+    print('base_piece:', base_piece.isWellFormedNotation())
     base_key = base_piece.analyze('key')
     print('base_key:', base_key)
 
+    # Transpose chircle of fifths up and down.
     move = interval.Interval('-P5')
     transp_piece = base_piece.transpose(move)
+
+    print('transp_piece:', transp_piece.isWellFormedNotation())
 
     #transp_piece.show()
     
     # append the transposed part to the end of the original.
     new_score = stream.Stream()
     new_score.append([orig_piece, base_piece, transp_piece])
+
+    print('new_score:', new_score.isWellFormedNotation())
 
     # Save new combines file
     new_score.write('musicxml', "transposed_score.mxl")
