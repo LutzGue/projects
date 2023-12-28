@@ -88,13 +88,6 @@ chords = {
 midi_range_bass = {'min': 'C0', 'max': 'E1'}
 midi_range_chords = {'min': 'E1', 'max': 'E3'}
 
-"""
-# Beispiel für den Bereich der möglichen Noten auf dem Klavier (von C0 bis B7)
-range_of_notes = [note + str(octave) for note in ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] for octave in range(8)]
-
-print('range:',range_of_notes)
-"""
-
 ### FUNCTION SECTION ###
 
 def parse_file(fname):
@@ -304,13 +297,13 @@ def separate_chordroot_chordtype(chord):
     # If no match found, return the whole chord as root and 'M' (for Major Triad) as default type
     return chord, 'M'
 
-def save_into_file(export_filename, chords):
+def save_into_file(export_filename):
     """
     Stores the new chordprogression into musicxml / MXL / MIDI file.
     """
 
     # Define the chords
-    # chords = ['C2 E3 G3 C4', 'G3 B3 D4', 'C4 E4 G4']
+    chords = ['C2 E3 G3 C4', 'G3 B3 D4', 'C4 E4 G4']
 
     # Create a stream
     s = stream.Stream()
@@ -324,8 +317,8 @@ def save_into_file(export_filename, chords):
     s.write('musicxml', fp=export_filename)
 
     # --- OPEN IN MUSE4 ---
-    s.show("text")
-    s.show()
+    ### s.show("text")
+    ### s.show()
 
     return "SUCCESS"
 
@@ -336,60 +329,45 @@ def calculate_octaves(song):
     Hier werden die Oktaven für die Noten im Akkord und die Bassnote mit den entsprechenden Oktavbrüchen versieht.
     """
 
-    chord_list = []
+    # Beispiel für den Bereich der möglichen Noten auf dem Klavier (von C0 bis B7)
+    range_of_notes = [note + str(octave) for note in ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] for octave in range(8)]
 
-    # mapping notennamen zu ids
-    note_names = {1: "C", 2: "C#", 3: "D", 4: "D#", 5: "E", 6: "F", 7: "F#", 8: "G", 9: "G#", 10: "A", 11: "A#", 12: "B"}
+    print('range:',range_of_notes)
 
     # iterate chords
     for i in song['pitches']:
 
         print('----')
 
-        # init previous note id zur identifikation des oktav-bruches
-        prev_note_id = 0
-        note_octave = 4
-        txt = ''
-
         # Get Bassnote
-        bass_octave = 3
-        bass = i['bass']
-
-        txt = txt + bass + str(bass_octave)
-        print(bass, bass_octave)
+        bass_octave = 0
+        bass = i['bass'] + str(bass_octave)
+        print(bass)
 
         # Iterate Notes in Chords
-        for note in i['pitches']:
-            # Get the ID of the note name using the get method
-            note_id = next((id for id, name in note_names.items() if name == note), None)
+        for j in i['pitches']:
+            note_octave = 0
 
-            # Assign the ID to the note name in the mapping dictionary
-            if note_id is not None:
+            # Get the current note
+            note = j + str(note_octave)
 
-                # identifikation des oktav-bruches
-                if note_id > prev_note_id:
-                    prev_note_id = note_id
-                else:
-                    prev_note_id = note_id
-                    note_octave += 1
+            # Find the corresponding octave fraction for the note
+            while note not in range_of_notes:
+                note_octave += 1
+                note = j + str(note_octave)
 
-                txt = txt + ' ' + note + str(note_octave)
-                print(note, note_octave)
+            print(note)
   
-        chord_list.append(txt)
-        print('txt:',txt)
-
-    return chord_list
+    return "SUCCESS"
 
 ### CALL FUNCTIONS SECTION ###
 
 song = parse_file(file_name)
 print('--song:',song)
 
-chord_list = calculate_octaves(song)
-print('chord_list:',chord_list)
+print(calculate_octaves(song))
 
-print(save_into_file('chord_progression.mxl', chord_list))
+print(save_into_file('chord_progression.mxl'))
 
 # Test the functions
 

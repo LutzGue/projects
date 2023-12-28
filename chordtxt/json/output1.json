@@ -1,0 +1,30 @@
+[data:
+{
+    'author': 'lum', 
+    'title': '87', 
+    'key': 'C,Major', 
+    'bassnote': 'false', 
+    'convertto': 'musicxml', 
+    'type': 'qz up', 
+    'marker': 'key', 
+    'tempo': '120 bpm',
+    'meter': '4/4',
+    'pos': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31], 
+    'chords': ['C/e/C', 'C/e/C', 'C/e/C', 'C/e/C', 'G/d/B', 'G/d/B', 'G/d/B', 'G/d/B', 'F/f/F', 'F/f/F', 'F/f/F', 'F/f/F', 'F/f/G', 'F/f/G', 'F/f/G', 'F/f/G', 'C/e/C', 'C/e/C', 'C/e/C', 'C/e/C', 'C/e/C', 'D7/C', 'D7/C', 'D7/C', 'D7/C', 'G/B', 'G/B', 'F/f/A', 'F/f/A', 'F/f/F', 'F/f/F', 'G/g/F'], 
+    'pitches': [
+        {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, 
+        {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, 
+        {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, 
+        {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, 
+        {'root': 'G', 'type': 'M', 'inversion': 'D', 'bass': 'B', 'inversion_id': 2, 'pitches': ['D', 'G', 'B']}, 
+        {'root': 'G', 'type': 'M', 'inversion': 'D', 'bass': 'B', 'inversion_id': 2, 'pitches': ['D', 'G', 'B']}, 
+        {'root': 'G', 'type': 'M', 'inversion': 'D', 'bass': 'B', 'inversion_id': 2, 'pitches': ['D', 'G', 'B']}, 
+        {'root': 'G', 'type': 'M', 'inversion': 'D', 'bass': 'B', 'inversion_id': 2, 'pitches': ['D', 'G', 'B']}, 
+        {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'F', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, 
+        {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'F', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, 
+        {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'F', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, 
+        {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'F', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, 
+        {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'G', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'G', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'G', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'G', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, {'root': 'C', 'type': 'M', 'inversion': 'E', 'bass': 'C', 'inversion_id': 1, 'pitches': ['E', 'G', 'C']}, {'root': 'D', 'type': '7', 'bass': 'C', 'inversion': 'D', 'inversion_id': 0, 'pitches': ['D', 'F#', 'A', 'C']}, {'root': 'D', 'type': '7', 'bass': 'C', 'inversion': 'D', 'inversion_id': 0, 'pitches': ['D', 'F#', 'A', 'C']}, {'root': 'D', 'type': '7', 'bass': 'C', 'inversion': 'D', 'inversion_id': 0, 'pitches': ['D', 'F#', 'A', 'C']}, {'root': 'D', 'type': '7', 'bass': 'C', 'inversion': 'D', 'inversion_id': 0, 'pitches': ['D', 'F#', 'A', 'C']}, {'root': 'G', 'type': 'M', 'bass': 'B', 'inversion': 'G', 'inversion_id': 0, 'pitches': ['G', 'B', 'D']}, {'root': 'G', 'type': 'M', 'bass': 'B', 'inversion': 'G', 'inversion_id': 0, 'pitches': ['G', 'B', 'D']}, {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'A', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'A', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'F', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']}, {'root': 'F', 'type': 'M', 'inversion': 'F', 'bass': 'F', 'inversion_id': 0, 'pitches': ['F', 'A', 'C']},
+        {'root': 'G', 'type': 'M', 'inversion': 'G', 'bass': 'F', 'inversion_id': 0, 'pitches': ['G', 'B', 'D']}
+    ]
+}]
