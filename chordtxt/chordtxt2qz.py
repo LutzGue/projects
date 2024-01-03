@@ -44,8 +44,11 @@ Next steps:
 # Define the path to the chordtxt import-file to parse
 # You can edit this variable
 
-#file_name = 'txt\\87.txt'
-file_name = 'txt\\02_chord_progressions_for_songwriters\\01_ascending_basslines\\0001.txt'
+file_path = 'txt\\02_chord_progressions_for_songwriters\\01_ascending_basslines\\'
+file_title = '0011'
+file_extension = '.txt'
+
+file_name = file_path + file_title + file_extension
 
 # Define the notes (7 Stammtöne)
 notes_basic = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
@@ -76,11 +79,14 @@ chords = {
     'Maj7': ['R', 'M3', 'P5', 'M7'],
     'o7': ['R', 'm3', 'b5', 'b7'],
     'o': ['R', 'm3', 'b5'],
+    'm7add11': ['R', 'm3', 'P5', 'm7', 'P11'],
     'm7': ['R', 'm3', 'P5', 'm7'],
     'm': ['R', 'm3', 'P5'],
     '+': ['R', 'M3', '#5'],
     '7': ['R', 'M3', 'P5', 'm7'],
-    'M': ['R', 'M3', 'P5']
+    'M': ['R', 'M3', 'P5'],
+    '11': ['R', 'M3', 'P5', 'm7', 'M9', 'P11'],
+    'add9': ['R', 'M3', 'P5', 'M9']
 }
 
 # Midi-Range-Config (min/max notes): a) for bass; b ) for chords
@@ -205,10 +211,13 @@ def get_pitches(root_note_enharm_correct, chord_name, inversion):
     # Convert the intervals to pitches
     pitches = [notes[(root_index + {'R' : 0, 
                                     'm2': 1, 
+                                    'm9': 1,
                                     'M2': 2, 
+                                    'M9': 2,
                                     'm3': 3,  
                                     'M3': 4,  
                                     'P4': 5,
+                                    'P11': 5,
                                     '#4': 6,  
                                     'b5': 6, 
                                     'P5': 7,  
@@ -321,11 +330,14 @@ def save_into_file(export_filename, chords):
         s.append(ch)
 
     # Write to a MusicXML file
-    s.write('musicxml', fp=export_filename)
+    s.write('musicxml', fp=export_filename + '.mxl')
+
+    # Write to a MIDI file
+    s.write('midi', fp=export_filename + '.midi')
 
     # --- OPEN IN MUSE4 ---
-    s.show("text")
-    s.show()
+    #### s.show("text")
+    #### s.show()
 
     return "SUCCESS"
 
@@ -389,7 +401,7 @@ print('--song:',song)
 chord_list = calculate_octaves(song)
 print('chord_list:',chord_list)
 
-print(save_into_file('chord_progression.mxl', chord_list))
+print(save_into_file(file_title, chord_list))
 
 # Test the functions
 

@@ -1,0 +1,14 @@
+na
+na
+na,na
+false
+musicxml
+qz up
+key
+na bpm
+4/4
+C
+Dm7
+C/E
+F
+G7

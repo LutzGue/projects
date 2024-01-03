@@ -6,4 +6,11 @@ musicxml
 qz up
 key
 na bpm
-na/na
+4/4
+C11
+C
+Dm7
+Em7
+FMaj7
+G11
+G

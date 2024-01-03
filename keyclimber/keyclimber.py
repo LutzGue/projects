@@ -123,15 +123,19 @@ def import_transpose_musicxml(import_filename, export_filename):
 
 ### CALL SECTION
 
-# import_filename = 'mid\\5.mid'
-# export_filename = 'mid\\5.mid_transp.mid'
+### --- MIDI ---
+#### import_filename = 'mid\\0001.midi'
+#### export_filename = 'mid\\0001_mid_transp.midi'
+#### import_codec = 'midi'  ### 'midi / musicxml'
 
-# import_filename = 'musicxml\\46.musicxml'
-# export_filename = 'musicxml\\46_transp.musicxml'
-
-import_filename = 'musicxml\\46.mxl'
-export_filename = 'musicxml\\46_transp.mxl'
-
+#### --- MUSICXML ---
+import_filename = 'musicxml\\0001.musicxml'
+export_filename = 'musicxml\\0001_transp.musicxml'
 import_codec = 'musicxml'  ### 'midi / musicxml'
+
+### --- MXL ---
+#### import_filename = 'musicxml\\0001.mxl'
+#### export_filename = 'musicxml\\0001_transp.mxl'
+#### import_codec = 'musicxml'  ### 'midi / musicxml'
 
 print(import_transpose(import_filename, export_filename, import_codec))
