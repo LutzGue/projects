@@ -1,6 +1,6 @@
 na
 na
-C,Major
+na,na
 false
 musicxml
 qz up
@@ -8,6 +8,18 @@ key
 na bpm
 4/4
 C
-Am
+
+
+
+Dm7
+
+
+
+Em7
+
+
+
 F
-G
+
+
+

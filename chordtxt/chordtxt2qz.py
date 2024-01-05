@@ -44,11 +44,18 @@ Next steps:
 # Define the path to the chordtxt import-file to parse
 # You can edit this variable
 
-file_path = 'txt\\02_chord_progressions_for_songwriters\\01_ascending_basslines\\'
-file_title = '0011'
+script_verzeichnis = os.path.dirname(os.path.realpath(__file__))
+file_path = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","01_ascending_basslines")
+print("file_path:",file_path)
+
+#file_path = 'txt\\02_chord_progressions_for_songwriters\\01_ascending_basslines\\'
+file_title = '0002'
 file_extension = '.txt'
 
-file_name = file_path + file_title + file_extension
+file_name = os.path.join(file_path,file_title + file_extension)
+
+#file_name = file_path + file_title + file_extension
+print("source_file:",file_name)
 
 # Define the notes (7 Stammtöne)
 notes_basic = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
@@ -157,8 +164,8 @@ def parse_file(fname):
                     # Parse and Write chords into array
                     actline = line.strip()
 
-                    # blank section in chord progression means copy chord from previous
-                    if(actline == ''): 
+                    # blank section or dot (.) character in chord progression means copy chord from previous
+                    if(actline == '' or actline == '.'): 
                         actline = tmpactline
                     else: 
                         tmpactline = actline
@@ -313,10 +320,13 @@ def separate_chordroot_chordtype(chord):
     # If no match found, return the whole chord as root and 'M' (for Major Triad) as default type
     return chord, 'M'
 
-def save_into_file(export_filename, chords):
+def save_into_file(export_file_path, export_filename, chords):
     """
     Stores the new chordprogression into musicxml / MXL / MIDI file.
     """
+
+    store_file = os.path.join(export_file_path, export_filename)
+    print("store_file:",store_file)
 
     # Define the chords
     # chords = ['C2 E3 G3 C4', 'G3 B3 D4', 'C4 E4 G4']
@@ -330,10 +340,10 @@ def save_into_file(export_filename, chords):
         s.append(ch)
 
     # Write to a MusicXML file
-    s.write('musicxml', fp=export_filename + '.mxl')
+    s.write('musicxml', fp=store_file + '.mxl')
 
     # Write to a MIDI file
-    s.write('midi', fp=export_filename + '.midi')
+    s.write('midi', fp=store_file + '.midi')
 
     # --- OPEN IN MUSE4 ---
     #### s.show("text")
@@ -401,7 +411,7 @@ print('--song:',song)
 chord_list = calculate_octaves(song)
 print('chord_list:',chord_list)
 
-print(save_into_file(file_title, chord_list))
+print(save_into_file(file_path, file_title, chord_list))
 
 # Test the functions
 

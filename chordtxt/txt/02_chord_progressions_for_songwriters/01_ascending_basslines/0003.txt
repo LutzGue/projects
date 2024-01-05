@@ -1,6 +1,6 @@
 na
 na
-na,na
+C,Major
 false
 musicxml
 qz up
@@ -8,18 +8,18 @@ key
 na bpm
 4/4
 C
-
-
-
-Dm
-
-
-
-Em
-
-
-
-FMaj7
-
-
-
+.
+.
+.
+C
+.
+.
+.
+F
+.
+.
+.
+G
+.
+.
+.

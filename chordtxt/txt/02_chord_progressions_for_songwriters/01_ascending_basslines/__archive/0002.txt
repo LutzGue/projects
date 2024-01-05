@@ -8,6 +8,18 @@ key
 na bpm
 4/4
 C
-Am
+
+
+
+Dm
+
+
+
+Em
+
+
+
 F
-G
+
+
+
