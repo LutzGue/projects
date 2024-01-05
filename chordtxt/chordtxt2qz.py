@@ -41,22 +41,6 @@ Next steps:
 """
 ### INITIAL VARIABLES SECTION ###
 
-# Define the path to the chordtxt import-file to parse
-# You can edit this variable
-
-script_verzeichnis = os.path.dirname(os.path.realpath(__file__))
-file_path = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","01_ascending_basslines")
-print("file_path:",file_path)
-
-#file_path = 'txt\\02_chord_progressions_for_songwriters\\01_ascending_basslines\\'
-file_title = '0002'
-file_extension = '.txt'
-
-file_name = os.path.join(file_path,file_title + file_extension)
-
-#file_name = file_path + file_title + file_extension
-print("source_file:",file_name)
-
 # Define the notes (7 Stammtöne)
 notes_basic = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
@@ -325,29 +309,33 @@ def save_into_file(export_file_path, export_filename, chords):
     Stores the new chordprogression into musicxml / MXL / MIDI file.
     """
 
-    store_file = os.path.join(export_file_path, export_filename)
-    print("store_file:",store_file)
+    if(len(chords)>0):
 
-    # Define the chords
-    # chords = ['C2 E3 G3 C4', 'G3 B3 D4', 'C4 E4 G4']
+        store_file = os.path.join(export_file_path, export_filename)
+        print("store_file:",store_file)
 
-    # Create a stream
-    s = stream.Stream()
+        # Define the chords
+        # chords = ['C2 E3 G3 C4', 'G3 B3 D4', 'C4 E4 G4']
 
-    # Add the chords to the stream
-    for c in chords:
-        ch = chord.Chord(c)
-        s.append(ch)
+        # Create a stream
+        s = stream.Stream()
 
-    # Write to a MusicXML file
-    s.write('musicxml', fp=store_file + '.mxl')
+        # Add the chords to the stream
+        for c in chords:
+            ch = chord.Chord(c)
+            s.append(ch)
 
-    # Write to a MIDI file
-    s.write('midi', fp=store_file + '.midi')
+        # Write to a MusicXML file
+        s.write('musicxml', fp=store_file + '.mxl')
 
-    # --- OPEN IN MUSE4 ---
-    #### s.show("text")
-    #### s.show()
+        # Write to a MIDI file
+        s.write('midi', fp=store_file + '.midi')
+
+        # --- OPEN IN MUSE4 ---
+        #### s.show("text")
+        #### s.show()
+    else:
+        print("!!! empty chords in txt content --> skipped creating output file.")
 
     return "SUCCESS"
 
@@ -405,15 +393,44 @@ def calculate_octaves(song):
 
 ### CALL FUNCTIONS SECTION ###
 
-song = parse_file(file_name)
-print('--song:',song)
+# Define the path to the chordtxt import-file to parse
+# You can edit this variable
 
-chord_list = calculate_octaves(song)
-print('chord_list:',chord_list)
+script_verzeichnis = os.path.dirname(os.path.realpath(__file__))
+file_path = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","01_ascending_basslines")
+print("file_path:",file_path)
 
-print(save_into_file(file_path, file_title, chord_list))
+txt_files = []
 
-# Test the functions
+#### MANUAL INPUT: only selected file processing (instead of batch job)
+#### txt_files.append("0001.txt")
+#### txt_files.append("0003.txt")
+
+if(len(txt_files)==0):
+    ### BATCH JOB: Hole Liste aller .txt-Dateien im angegebenen Ordner für den batch job
+    txt_files = [f for f in os.listdir(file_path) if f.endswith('.txt')]
+
+# Iterieren Sie über jede Datei und verarbeiten Sie sie
+for file_name in txt_files:
+    print("Processing file:", file_name)
+
+    file_title = file_name[:-4]
+    file_extension = '.txt'
+
+    file_name = os.path.join(file_path,file_title + file_extension)
+    print("source_file:",file_name)
+
+    ### CALL FUNCTIONS ###
+
+    song = parse_file(file_name)
+    print('--song:',song)
+
+    chord_list = calculate_octaves(song)
+    print('chord_list:',chord_list)
+
+    print(save_into_file(file_path, file_title, chord_list))
+
+### Test the functions ###
 
 #print(get_note_name(get_note_number('Dbbb')))
 #print(get_pitches('C', 'Maj7', 0))
