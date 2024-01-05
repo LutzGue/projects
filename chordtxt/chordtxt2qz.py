@@ -1,6 +1,7 @@
 from music21 import *
 import os
 import codecs
+import sys
 
 """
 ---------------------------------------
@@ -25,6 +26,9 @@ The get_pitches function calculates the pitches of a chord based on its root not
 representing a chord and returns a dictionary with detailed information about the chord, including its root note, type, inversion, bass note, and the pitches it consists of.
 ---------------------------------------
 Next steps:
+* simplify enharmonic
+* chordnames
+* midi labels
 1) IN PROGRESS -- Add Error Handling: try / except
 2) IN PROGRESS -- Add docstrings to the functions to explain what they do, what parameters they take, and what they return.
 3) Variable Names: Some of the variable names (like actline and tmpactline) could be more descriptive. Clear variable names make your code easier to read and understand.
@@ -68,16 +72,22 @@ chords = {
     'Sus4': ['R', 'P4', 'P5'],
     'Sus2': ['R', 'M2', 'P5'],
     'Maj7': ['R', 'M3', 'P5', 'M7'],
+    'maj7': ['R', 'M3', 'P5', 'M7'],
+    'Maj9': ['R', 'M3', 'P5', 'M7','M9'],
+    'maj9': ['R', 'M3', 'P5', 'M7','M9'],
     'o7': ['R', 'm3', 'b5', 'b7'],
     'o': ['R', 'm3', 'b5'],
     'm7add11': ['R', 'm3', 'P5', 'm7', 'P11'],
     'm7': ['R', 'm3', 'P5', 'm7'],
     'm': ['R', 'm3', 'P5'],
     '+': ['R', 'M3', '#5'],
+    '6': ['R', 'M3', 'P5', 'M6'],
     '7': ['R', 'M3', 'P5', 'm7'],
     'M': ['R', 'M3', 'P5'],
     '11': ['R', 'M3', 'P5', 'm7', 'M9', 'P11'],
-    'add9': ['R', 'M3', 'P5', 'M9']
+    '13': ['R', 'M3', 'P5', 'm7', 'M9', 'P11', 'M13'],
+    'add9': ['R', 'M3', 'P5', 'M9'],
+    '7#9': ['R', 'M3', 'P5', 'm7','#9'],
 }
 
 # Midi-Range-Config (min/max notes): a) for bass; b ) for chords
@@ -200,25 +210,27 @@ def get_pitches(root_note_enharm_correct, chord_name, inversion):
     root_index = notes.index(root_note_enharm_equal)
     
     # Convert the intervals to pitches
-    pitches = [notes[(root_index + {'R' : 0, 
-                                    'm2': 1, 
-                                    'm9': 1,
-                                    'M2': 2, 
-                                    'M9': 2,
-                                    'm3': 3,  
-                                    'M3': 4,  
-                                    'P4': 5,
-                                    'P11': 5,
-                                    '#4': 6,  
-                                    'b5': 6, 
-                                    'P5': 7,  
-                                    '#5': 8,  
-                                    'm6': 8,
-                                    'M6': 9,  
-                                    'b7': 9,
-                                    'm7': 10, 
-                                    'M7': 11,
-                                    '#7': 0
+    pitches = [notes[(root_index + {'R' : 0,  # c
+                                    'm2': 1,  # c#/db
+                                    'm9': 1,  # c#/db
+                                    'M2': 2,  # d
+                                    'M9': 2,  # d
+                                    'm3': 3,  # d#/eb
+                                    '#9': 3,  # d#/eb
+                                    'M3': 4,  # e
+                                    'P4': 5,  # f
+                                    'P11': 5, # f
+                                    '#4': 6,  # f#/gb
+                                    'b5': 6,  # f#/gb
+                                    'P5': 7,  # g
+                                    '#5': 8,  # g#/ab
+                                    'm6': 8,  # g#/ab
+                                    'M6': 9,  # a
+                                    'M13': 9, # a
+                                    'b7': 9,  # a
+                                    'm7': 10, # a#/bb
+                                    'M7': 11, # b
+                                    '#7': 0   # c
                                     }[interval]) % len(notes)] for interval in intervals]
     
     # Apply the inversion
@@ -283,7 +295,8 @@ def parse_chord_string(input_string):
         return chord_informations
     
     except Exception as e:
-        print(f"Error parsing chord string {input_string}: {e}")
+        print(f"!!! Error parsing chord string {input_string}: {e}")
+        sys.exit()
         return None
 
 def separate_chordroot_chordtype(chord):
@@ -304,10 +317,12 @@ def separate_chordroot_chordtype(chord):
     # If no match found, return the whole chord as root and 'M' (for Major Triad) as default type
     return chord, 'M'
 
-def save_into_file(export_file_path, export_filename, chords):
+def save_into_file(export_file_path, export_filename, chords, gettimesignature):
     """
     Stores the new chordprogression into musicxml / MXL / MIDI file.
     """
+
+    print('timesignature:',gettimesignature)
 
     if(len(chords)>0):
 
@@ -320,10 +335,45 @@ def save_into_file(export_file_path, export_filename, chords):
         # Create a stream
         s = stream.Stream()
 
-        # Add the chords to the stream
+        s.append(metadata.Metadata(composer = "LUM"))
+        s.append(metadata.Metadata(title = "PROGRESSION"))
+
+        # Set the time signature to 3/4
+        s.metadata = metadata.Metadata()
+        s.metadata.timeSignature = meter.TimeSignature(gettimesignature)
+
+        # Set the time signature again to ensure it's included in the MusicXML output
+        s.append(meter.TimeSignature(gettimesignature))
+
+        count = 1
+        # Add the chords to the stream with the calculated duration
         for c in chords:
-            ch = chord.Chord(c)
+
+            # ----------------------
+            #c.simplifyEnharmonics(inPlace=True, keyContext=key.Key('A-'))
+            #ch.pitchedCommonName
+            # ----------------------
+
+            es = analysis.enharmonics.EnharmonicSimplifier(c.split())
+            es.bestPitches()
+
+            # get chord block
+            ch = chord.Chord(es)
+
+            # Römisches Numeral als Label hinzufügen
+            roman_numeral = roman.romanNumeralFromChord(ch, 'C', preferSecondaryDominants=True)
+            ch.addLyric(str(roman_numeral.figure))
+
+           
+
+            # label chord id
+            #ch.addLyric(str(count))
+            #ch.addLyric(sf)
+
+            # add data
             s.append(ch)
+
+            count += 1
 
         # Write to a MusicXML file
         s.write('musicxml', fp=store_file + '.mxl')
@@ -428,7 +478,7 @@ for file_name in txt_files:
     chord_list = calculate_octaves(song)
     print('chord_list:',chord_list)
 
-    print(save_into_file(file_path, file_title, chord_list))
+    print(save_into_file(file_path, file_title, chord_list, song['meter']))
 
 ### Test the functions ###
 

@@ -7,3 +7,8 @@ qz up
 key
 na bpm
 4/4
+C
+Dm
+C/E
+F
+G

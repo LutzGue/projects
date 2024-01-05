@@ -6,8 +6,28 @@ musicxml
 qz up
 key
 na bpm
-4/4
+3/4
 C
-Am
+.
+.
+C
+.
+.
 F
-G
+.
+.
+F#o7
+.
+.
+C/G
+.
+.
+G7
+.
+.
+C
+.
+.
+G7
+.
+.

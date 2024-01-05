@@ -1,0 +1,12 @@
+na
+na
+C,Major
+false
+musicxml
+qz up
+key
+na bpm
+4/4
+C
+F
+G
