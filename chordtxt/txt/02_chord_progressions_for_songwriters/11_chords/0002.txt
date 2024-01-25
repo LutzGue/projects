@@ -7,3 +7,7 @@ qz up
 key
 na bpm
 4/4
+Gsus2
+Esus2
+Gsus4
+Esus4

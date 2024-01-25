@@ -61,10 +61,13 @@ if __name__ == "__main__":
     print("template:",template_pfad)
 
     script_verzeichnis = os.path.dirname(os.path.realpath(__file__))
-    ziel_ordner = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","01_ascending_basslines")
+    
+    #ziel_ordner = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","01_ascending_basslines")
+    ziel_ordner = os.path.join(script_verzeichnis, "txt", "03_reharmonization_techniques","10_basic_piano_voicing_techniques")
+    
     print("target:",ziel_ordner)
 
-    anzahl_kopien = 50  # Anzahl der gewünschten Kopien
+    anzahl_kopien = 21  # Anzahl der gewünschten Kopien
     print("copies:",anzahl_kopien)
 
     kopiere_template(template_pfad, ziel_ordner, anzahl_kopien)

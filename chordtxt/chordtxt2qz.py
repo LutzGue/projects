@@ -1,460 +1,785 @@
+"""
+Python code that uses the music21 library to generate chord progressions in MIDI and MusicXML file formats from a given chord progression in TXT format. The user can transfer chord progressions from books or websites in a simple input format into a txt file. Voice leading possibilities are calculated for the transitions of the chords. The generated MIDI file can be practiced on the piano and expands your playing skills on the instrument. This develops new improvisation skills. The helper tool can be used to create new txt files for entering chord progressions and generate any number of input documents.
+"""
 from music21 import *
 import os
 import codecs
 import sys
+from itertools import product
+import pprint
 
-"""
----------------------------------------
-Lutz Menzel
-Berlin, Germany, 2023-09-13
-Version 00.01
-MIT Licence
----------------------------------------
-PROJECT: Generate chord progressions in MIDI and MusicXML file from a given chord progression in TXT format and provide transposing batch.
----------------------------------------
-My personal goal is to improve my skills in practical piano playing. For this, daily practice is important and to train a wide repertoire of established 
-chord progressions that are helpful for songwriting. I believe that with the muscle memory in the fingers, the feeling of playing live is made possible 
-and thus a creative environment is created to create new songs. I personally like to practice piano on my Midi-Keyboard using the App ST. For that purpose 
-i've started collecting and creating Midi files to open them in ST. But the adaptation of templates from books and various video tutorials and the preparation in MIDI editors 
-is very time-consuming and i became unmotivated. First, I needed the simplest editor in which I could quickly capture the templates in a machine-readable format and decided on Notepad 
-in TXT format. In addition, I want to be flexible for modulation and train all transcribed examples in all keys in the circle of fifths upwards, downwards 
-and chromatically upwards and downwards. For transposing to other keys, a batch job is suitable, which I present in this Python script for parsing and analyzing 
-chord progressions in songs. The code provides several data structures for musical notes and chords, and includes functions for parsing a song file and analyzing 
-the chords within it. The parse_file function reads a song file and extracts metadata (like the author, title, key, etc.) as well as the sequence of chords in the song.
-The get_note_number and get_note_name functions convert between note names (like 'C', 'D#', etc.) and their corresponding numerical values.
-The get_pitches function calculates the pitches of a chord based on its root note, chord type, and inversion. The parse_chord_string function takes a string 
-representing a chord and returns a dictionary with detailed information about the chord, including its root note, type, inversion, bass note, and the pitches it consists of.
----------------------------------------
-Next steps:
-* simplify enharmonic
-* chordnames
-* midi labels
-1) IN PROGRESS -- Add Error Handling: try / except
-2) IN PROGRESS -- Add docstrings to the functions to explain what they do, what parameters they take, and what they return.
-3) Variable Names: Some of the variable names (like actline and tmpactline) could be more descriptive. Clear variable names make your code easier to read and understand.
-4) DONE -- The chord types are defined in two places: once in the chords dictionary and once in the separate_chordroot_chordtype function. This redundancy could lead to errors or inconsistencies if you update the chord types in one place but forget to update them in the other. One way to eliminate this redundancy is to define your chord types in a single place and then reference that definition wherever you need it.
-5) DONE -- Midi-Range-Config (min/max notes): a) for bass; b ) for chords
-6) IN PROGRESS -- Midi-Notes-Octaves calculation: needs to be in the defined range (see point no. 5)
-7) Legato-mode: tie common notes
-8) DONE -- Meta-Informations: a) add tempo in BPM; b) add meter (e.g. 4/4, 3/4, 6/4)
-9) Save into: a) MusicXML; b) MIDI
-10) feature integration: Transpose into all Keys: a) QZ (up/down); b) chromatically (up/down)
-11) DONE -- Song-Pos in chord-list
-12) feature integration: SB import / export files
----------------------------------------
-"""
-### INITIAL VARIABLES SECTION ###
-
-# Define the notes (7 Stammtöne)
-notes_basic = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-
-# Define the 12 notes enharmonic EQUAL (in sharp notation)
-notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-
-# List of the enharmonic EQUAL note names (in sharp notation) and mapped to each note number:
-note_names = {1:"C", 2:"C#", 3:"D", 4:"D#", 5:"E", 6:"F", 7:"F#", 8:"G", 9:"G#", 10:"A", 11:"A#", 12:"B"}
-
-# Define the enharmonic CORRECT accidentals and map it to enharmonic EQUAL note numbers.
-note_values = {
-    '###': [4, 6, 8, 9, 11, 1, 3],
-    '##': [3, 5, 7, 8, 10, 12, 2],
-    '#': [2, 4, 6, 7, 9, 11, 1],
-    'neutral': [1, 3, 5, 6, 8, 10, 12],
-    'b': [12, 2, 4, 5, 7, 9, 11],
-    'bb': [11, 1, 3, 4, 6, 8, 10],
-    'bbb': [10, 12, 2, 3, 5, 7, 9]
-}
-
-# Define the chords unsing interval structure
-# IMPORTANT: 1) Keep order range lenghts of Chord-type-descriptions DESCENDING in the list below! 
-#            2) Don't remove default label "M" for major Chords.
-chords = {
-    'Sus4': ['R', 'P4', 'P5'],
-    'Sus2': ['R', 'M2', 'P5'],
-    'Maj7': ['R', 'M3', 'P5', 'M7'],
-    'maj7': ['R', 'M3', 'P5', 'M7'],
-    'Maj9': ['R', 'M3', 'P5', 'M7','M9'],
-    'maj9': ['R', 'M3', 'P5', 'M7','M9'],
-    'o7': ['R', 'm3', 'b5', 'b7'],
-    'o': ['R', 'm3', 'b5'],
-    'm7add11': ['R', 'm3', 'P5', 'm7', 'P11'],
-    'm7': ['R', 'm3', 'P5', 'm7'],
-    'm': ['R', 'm3', 'P5'],
-    '+': ['R', 'M3', '#5'],
-    '6': ['R', 'M3', 'P5', 'M6'],
-    '7': ['R', 'M3', 'P5', 'm7'],
-    'M': ['R', 'M3', 'P5'],
-    '11': ['R', 'M3', 'P5', 'm7', 'M9', 'P11'],
-    '13': ['R', 'M3', 'P5', 'm7', 'M9', 'P11', 'M13'],
-    'add9': ['R', 'M3', 'P5', 'M9'],
-    '7#9': ['R', 'M3', 'P5', 'm7','#9'],
-}
-
-# Midi-Range-Config (min/max notes): a) for bass; b ) for chords
-# Midi-Notes-Octaves calculation: needs to be in the defined range
-midi_range_bass = {'min': 'C0', 'max': 'E1'}
-midi_range_chords = {'min': 'E1', 'max': 'E3'}
-
-"""
-# Beispiel für den Bereich der möglichen Noten auf dem Klavier (von C0 bis B7)
-range_of_notes = [note + str(octave) for note in ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] for octave in range(8)]
-
-print('range:',range_of_notes)
-"""
-
-### FUNCTION SECTION ###
-
-def parse_file(fname):
+class ChordProgression:
     """
-    Parses a song file and extracts metadata and chords.
-    
-    Parameters:
-    fname (str): The path to the song file.
-    
-    Returns:
-    dict: A dictionary containing the song metadata and chords.
+    Klasse für Akkord-Progressionen.
     """
+    def __init__(self, file_title, fname_source, fname_midi, fname_musicxml):
+        """
+        Konstruktor der Klasse. Er nimmt den Pfad zu einer TXT-Datei, die die Akkordfolge enthält, als Argument und initialisiert einen music21 Stream.
+        """
+        self.file_title = file_title
+        self.fname_source = fname_source
+        self.fname_midi = fname_midi
+        self.fname_musicxml = fname_musicxml
 
-    dirname = os.path.dirname(__file__)
-    filename = os.path.join(dirname, fname)
+        self.s = stream.Stream()
 
-    # Check if file exists
-    if not os.path.exists(filename):
-        print(f"File {filename} not found.")
-        return None
+    def parse_file(self):
+        """
+        Parses a song file and extracts metadata and chords.
+        
+        Parameters:
+        fname (str): The path to the song file.
+        
+        Returns:
+        dict: A dictionary containing the song metadata and chords.
+        """
 
-    # Define the meta information of the song in the dictionary and initialize values
-    # You can maintain this list based on the schema in the chordtxt file
-    meta = [
-        "author", 
-        "title", 
-        "key", 
-        "bassnote", 
-        "convertto", 
-        "type", 
-        "marker", 
-        "tempo", 
-        "meter"
-    ]
+        print('--- START parse_file ---')
 
-    # Define song information based on previous meta fields and initialize values
-    song = {metaitem: "" for metaitem in meta}
+        #dirname = os.path.dirname(__file__)
+        #filename = os.path.join(dirname, fname)
 
-    # Add array for chords / pitches into the song schema and initialize values
-    song["pos"] = []
-    song["chords"] = []
-    song["pitches"] = []
+        filename = self.fname_source
 
-    try:
+        # Check if file exists
+        if not os.path.exists(filename):
+            print(f"File {filename} not found.")
+            return None
 
-        # Open the file and parse it
-        with codecs.open(filename, 'r', 'utf-8') as f:
-            lines = f.readlines()
-            for i, line in enumerate(lines):
-                # Parse meta information and write into song schema
-                if i < len(meta):
-                    song[meta[i]] = line.strip()
+        # Define the meta information of the song in the dictionary and initialize values
+        # You can maintain this list based on the schema in the chordtxt file
+        meta = [
+            "author", 
+            "title", 
+            "key", 
+            "bassnote", 
+            "convertto", 
+            "type", 
+            "marker", 
+            "tempo", 
+            "meter"
+        ]
+
+        # Define song information based on previous meta fields and initialize values
+        song = {metaitem: "" for metaitem in meta}
+
+        # Add array for chords / pitches into the song schema and initialize values
+        song["pos"] = []
+        song["chords"] = []
+        #song["pitches"] = []
+
+        try:
+
+            # Open the file and parse it
+            with codecs.open(filename, 'r', 'utf-8') as f:
+                lines = f.readlines()
+                for i, line in enumerate(lines):
+                    # Parse meta information and write into song schema
+                    if i < len(meta):
+                        song[meta[i]] = line.strip()
+                    else:
+                        # Parse and Write chords into array
+                        actline = line.strip()
+
+                        # blank section or dot (.) character in chord progression means copy chord from previous
+                        if(actline == '' or actline == '.'): 
+                            actline = tmpactline
+                        else: 
+                            tmpactline = actline
+
+                        song["pos"].append(i - len(meta))
+                        song["chords"].append(actline)
+
+                        #song["pitches"].append(parse_chord_string(actline))
+                    
+            # Output schema
+            # return song
+                        
+            # The parsed output song needs to contain 11 lines to be well-processed.
+            check_song = len(song)
+            check_song_pos = len(song["pos"])
+            check_song_chords = len(song["chords"])
+
+            if check_song > 10 and check_song_pos > 0 and check_song_chords > 0:
+                print('STATUS: parse_file was SUCCESSFULL. Song contains', check_song, 'lines /', check_song_pos, check_song_chords, 'chords.')
+
+                # Call function to generate chords into sheet.
+                self.generate_chord_progression(song)
+
+            else:
+                print('STATUS: parse_file with ERROR. Song contains', check_song, 'lines /', check_song_pos, check_song_chords, 'chords.')
+
+            return 'SUCCESS'
+        
+        except FileNotFoundError:
+            print(f"File {filename} not found.")
+            return None
+        
+        except Exception as e:
+            print(f"Error reading file {filename}: {e}")
+            return None
+
+    def generate_chord_progression(self, song):
+        """
+        Methode generiert Akkordfolgen in MIDI- und MusicXML-Dateiformaten. Sie liest die Akkorde aus der TXT-Datei, fügt sie dem music21 Stream hinzu und schreibt dann den Stream in die Ausgabedateien.
+        Documentation library music21.harmony:
+        https://web.mit.edu/music21/doc/moduleReference/moduleHarmony.html#music21.harmony.ChordSymbol.findFigure
+        https://web.mit.edu/music21/doc/moduleReference/moduleHarmony.html#music21.harmony.realizeChordSymbolDurations
+        Documentation MuseScore4:
+        https://musescore.org/en/handbook/3/chord-notation-systems
+        """
+
+        print('--- START generate_chord_progression ---')
+
+        gettimesignature = song['meter']  # e.g.: '4/4'
+        getkey           = song['key']    # e.g.: "C"
+
+        # set title and composer
+        self.s.append(metadata.Metadata(title = self.file_title, composer = 'Menzel, Lutz'))
+
+        # Set the time signature (e.g. 4/4, 3/4, ..)
+        self.s.append(meter.TimeSignature(gettimesignature))
+
+        # Set key
+        self.s.append(key.Key(getkey))
+
+        # Open the txt file and read the chords
+        #with open(self.txt_file, 'r') as f:
+            #chords = f.read().splitlines()
+            #print('chords:',chords)
+
+        chords = song['chords']
+        print('chords:',chords)
+
+        i = 0
+        previous_c = ''
+
+        # Add each chord to the stream
+        for chord in chords:
+            #print('chord:',chord)
+            
+            c = harmony.ChordSymbol(chord.strip())
+            d = roman.romanNumeralFromChord(c, getkey, preferSecondaryDominants=True)
+            c.writeAsChord = True
+
+            r = d.figure
+            if (i == 0):
+                r = getkey + ':' + r
+
+            c.lyric = chord.strip() + '\n' + r
+
+            #print('s:',c)
+
+            if c != previous_c:
+                self.s.append(c)
+            else:
+                rest = note.Rest(quarterLength=1)
+                self.s.append(rest)
+
+            i += 1
+            previous_c = c
+
+        # Write the stream to a MIDI file
+        self.s.write('midi', fp = self.fname_midi)
+
+        # Write the stream to a MusicXML file
+        self.s.write('musicxml', fp = self.fname_musicxml)
+
+        self.s.show('text')
+        
+        # pianoroll
+        #self.s.plot('pianoroll')
+
+        # Krumhansl key estimation graph
+        #p = graph.plot.WindowedKey(self.s)
+        #p.run()
+
+        self.transpose_chords()
+        self.voiceleading(song)
+
+    def extract_chordtype(self, getfullchordname):
+        """
+        Der Grundton wird identifiziert und entfernt. Dann werden '#' und '-' Zeichen vom verbleibenden Teil des Akkords entfernt. Schließlich wird alles nach dem Schrägstrich-Zeichen für den Akkordtyp entfernt.
+        """
+        print('---START','extract_chordtype')
+
+        try:
+
+            # Identifiziere Grundton
+            grundton = ''
+            for char in getfullchordname:
+                if char in 'CDEFGAB':
+                    grundton += char
                 else:
-                    # Parse and Write chords into array
-                    actline = line.strip()
+                    break
 
-                    # blank section or dot (.) character in chord progression means copy chord from previous
-                    if(actline == '' or actline == '.'): 
-                        actline = tmpactline
-                    else: 
-                        tmpactline = actline
+            # Entferne '#' und '-' Zeichen
+            akkordteil = getfullchordname[len(grundton):].lstrip('#').lstrip('-')
 
-                    song["pos"].append(i - len(meta))
-                    song["chords"].append(actline)
-                    song["pitches"].append(parse_chord_string(actline))
+            # Entferne alles nach dem Schrägstrich-Zeichen
+            akkordtyp_parts = akkordteil.split('/')
+            akkordtyp = akkordtyp_parts[0]
+
+            print('---END','extract_chordtype')
+
+            return akkordtyp
+        
+        except Exception as e:
+            print("!!! ERROR:", e)
+            return None
+
+    def transpose_chords(self):
+        """
+        Methode für eine Transponierungsfunktion. Die Akkorde werden im Stream transponieren.
+        """
+        print('--- START transpose_chords ---')
+        # Placeholder for transposing function
+        pass
+
+    def voiceleading(self, song):
+        """
+        Methode zur berechnung der möglichen voiceleading optionen.
+        """
+        print('--- START voiceleading ---')
+        # Placeholder for voiceleading function
+
+        self.vl_get_chord_type(song)
+
+        self.vl_get_bass_note()
+        self.vl_get_bass_is_inversion()
+        self.vl_roll_out_notes()
+        self.vl_get_root_motion()
+
+        pass
+
+    def vl_get_chord_type(self, song):
+        """
+        Methode um zu den Akkorden den Akkord-Typ zu ermitteln. Hierdurch werden die basic chord tones (z.B. 1, 3, 7) festgelegt und von den nicht benötigten tönen (z.B. 5th) und Tension notes (z.B. T9, T11, T13) unterschieden.
+        
+        music21 CHORD_TABLE:
+            https://github.com/cuthbertLab/music21/blob/f457a2ba52ea3f978d805cd52fa101dfb0dd8577/music21/harmony.py#L60
+        """
+        print('--- START vl_get_chord_type ---')
+
+        # define the range of generated octaves and midi note ids for each voice note.
+        parameters = {
+            'range':{
+                'octave':{
+                    'min': 1,
+                    'max': 5
+                },
+                'bass_midi':{
+                    'min': pitch.Pitch('A1').midi,
+                    'max': pitch.Pitch('F#3').midi
+                },
+                'root_midi':{
+                    'min': pitch.Pitch('A1').midi,
+                    'max': pitch.Pitch('F#3').midi
+                },
+                'third_midi':{
+                    'min': pitch.Pitch('D3').midi,
+                    'max': pitch.Pitch('C5').midi
+                },
+                'seventh_midi':{
+                    'min': pitch.Pitch('D3').midi,
+                    'max': pitch.Pitch('C5').midi
+                },
+                'fifth_midi':{
+                    'min': 48,
+                    'max': 60
+                },
+                'sixth_midi':{
+                    'min': 48,
+                    'max': 60
+                },
+                'fourth_midi':{
+                    'min': 48,
+                    'max': 60
+                },
+                'second_midi':{
+                    'min': 48,
+                    'max': 60
+                },
+                'tension_midi':{
+                    'min': 48,
+                    'max': 60
+                }
+            }
+        }
+
+        ### initial output dictionary for calculated voiceleading options. ###
+
+        #---------------------------
+
+        # create dictionary framework for transposing (iterations in intervals using start key)
+        vl0 = self.transpose_qz('C', 'p5', 8)
+        
+        for act_qz in vl0['qz']:
+            
+            # calculate all possible voice leadings options for the chords in the current transposed key
+            tmp = self.create_position(act_qz['qz_name'])
+
+            # add positions into main dictionary framework for all transposed keys and loop again
+            vl0['qz'][act_qz['qz_id']]['position'].append(tmp)
+
+        # output final dictionary containing all transposed chords in all voice leadings
+        pprint.pprint(vl0)
+
+        #---------------------------
+
+        vl = {'position':[]}
+
+        #chord_list = []
+        pos = -1
+
+        for element in self.s.recurse():
+            if 'ChordSymbol' in element.classes:
+
+                pos += 1
+
+                actBass = ''
+                if element.bass() is not None:
+                    actBass = element.bass().name
+
+                actRoot = ''
+                if element.root() is not None:
+                    actRoot = element.root().name
+
+                actThird = ''
+                if element.third is not None:
+                    actThird = element.third.name
+
+                actFifth = ''
+                if element.fifth is not None:
+                    actFifth = element.fifth.name
+
+                actSeventh = ''
+                if element.seventh is not None:
+                    actSeventh = element.seventh.name
+
+                actSecond = ''
+                if element.getChordStep(2) is not None:
+                    actSecond = element.getChordStep(2).name
+
+                actFourth = ''
+                if element.getChordStep(4) is not None:
+                    actFourth = element.getChordStep(4).name
+
+                actSixth = ''
+                if element.getChordStep(6) is not None:
+                    actSixth = element.getChordStep(6).name
+
+                # GENERATE TENSION LIST (get list of remaining chord-tones)
+                # TODO
+                    
+                normalOrder = element.normalOrder
+                firstPitch = normalOrder[0]
+                no = [(pc - firstPitch) % 12 for pc in normalOrder]
+                yy = chord.Chord.formatVectorString(no)
+
+                item = {
+                        'pos': (pos + 1),
+                        'chord_orig_name': song['chords'][pos],
+                        'chord_type_extracted': self.extract_chordtype(element.figure),
+                        'chord_name': element.figure,
+                        'inversion_nr': element.inversion(),
+                        'chord_type_descr': element.commonName,
+                        'chord_quality': element.quality,
+                        'chord_type_id': element.primeFormString,
+                        'normal_order': element.normalOrderString, ###
+                        'normal_order_0': no, ###
+                        'forte_class': element.forteClass, ###
+                        'interval_vector': element.intervalVectorString,
+                        'geometric': element.geometricNormalForm(),
+                        'vl':[],
+                        'bass':{
+                            'note': actBass,
+                            'octaves': [],
+                            'midi': []
+                        },
+                        'root':{
+                            'note': actRoot,
+                            'octaves': [],
+                            'midi': []
+                        },
+                        'third':{
+                            'note':actThird,
+                            'octaves':[],
+                            'midi': []
+                        },
+                        'seventh':{
+                            'note':actSeventh,
+                            'octaves':[],
+                            'midi': []
+                        },
+                        'fifth':{
+                            'note':actFifth,
+                            'octaves':[],
+                            'midi': []
+                        },
+                        'second':{
+                            'note':actSecond,
+                            'octaves':[],
+                            'midi': []
+                        },
+                        'fourth':{
+                            'note':actFourth,
+                            'octaves':[],
+                            'midi': []
+                        },
+                        'sixth':{
+                            'note':actSixth,
+                            'octaves':[],
+                            'midi': []
+                        },
+                        'tensions':[{
+                            'note':None,
+                            'octaves':[],
+                            'midi':[]
+                        }]
+                    }
+
+                vl['position'].append(item)
+
+                #chord_list.append(element.root().name)    # e.g.: C/G --> C
+                #chord_list.append(element.bass().name)    # e.g.: C/G --> G (Inversion)
+                #chord_list.append(actThird)
+                #chord_list.append(actFifth)
+                #chord_list.append(actSeventh)
+                                
+                #chord_list.append(element.figure)                  # e.g.: C, Gm, A7
+                #chord_list.append(element.pitchedCommonName)
+                #chord_list.append(element.primeForm)
+                #chord_list.append(element.root().nameWithOctave)    # e.g.: C/G --> C
+                #chord_list.append(element.bass().nameWithOctave)    # e.g.: C/G --> G (Inversion)
+
+                # calculate Bass and other notes VL variations in a given range.
+                for i in range(parameters['range']['octave']['min'], parameters['range']['octave']['max'] + 1):
+
+                    if actBass != '':
+                        bass_note = actBass + str(i)
+                        if pitch.Pitch(bass_note).midi is not None:
+                            bass_midi = pitch.Pitch(bass_note).midi
+                            if bass_midi >= parameters['range']['bass_midi']['min'] and bass_midi <= parameters['range']['bass_midi']['max']:
+                                vl['position'][pos]['bass']['octaves'].append(bass_note)
+                                vl['position'][pos]['bass']['midi'].append(bass_midi)
+
+                    if actRoot != '':
+                        root_note = actRoot + str(i)
+                        if pitch.Pitch(root_note).midi is not None:
+                            root_midi = pitch.Pitch(root_note).midi
+                            if root_midi >= parameters['range']['root_midi']['min'] and root_midi <= parameters['range']['root_midi']['max']:
+                                vl['position'][pos]['root']['octaves'].append(root_note)
+                                vl['position'][pos]['root']['midi'].append(root_midi)
+
+                    if actThird != '':
+                        third_note = actThird + str(i)
+                        if pitch.Pitch(third_note).midi is not None:
+                            third_midi = pitch.Pitch(third_note).midi
+                            if third_midi >= parameters['range']['third_midi']['min'] and third_midi <= parameters['range']['third_midi']['max']:
+                                vl['position'][pos]['third']['octaves'].append(third_note)
+                                vl['position'][pos]['third']['midi'].append(third_midi)
+
+                    if actSeventh != '':
+                        seventh_note = actSeventh + str(i)
+                        if pitch.Pitch(seventh_note).midi is not None:
+                            seventh_midi = pitch.Pitch(seventh_note).midi
+                            if seventh_midi >= parameters['range']['seventh_midi']['min'] and seventh_midi <= parameters['range']['seventh_midi']['max']:
+                                vl['position'][pos]['seventh']['octaves'].append(seventh_note)
+                                vl['position'][pos]['seventh']['midi'].append(seventh_midi)
+
+                    if actFifth != '':
+                        fifth_note = actFifth + str(i)
+                        if pitch.Pitch(fifth_note).midi is not None:
+                            fifth_midi = pitch.Pitch(fifth_note).midi
+                            if fifth_midi >= parameters['range']['fifth_midi']['min'] and fifth_midi <= parameters['range']['fifth_midi']['max']:
+                                vl['position'][pos]['fifth']['octaves'].append(fifth_note)
+                                vl['position'][pos]['fifth']['midi'].append(fifth_midi)
+
+                    if actSecond != '':
+                        second_note = actSecond + str(i)
+                        if pitch.Pitch(second_note).midi is not None:
+                            second_midi = pitch.Pitch(second_note).midi
+                            if second_midi >= parameters['range']['second_midi']['min'] and second_midi <= parameters['range']['second_midi']['max']:
+                                vl['position'][pos]['second']['octaves'].append(second_note)
+                                vl['position'][pos]['second']['midi'].append(second_midi)
+
+                    if actFourth != '':
+                        fourth_note = actFourth + str(i)
+                        if pitch.Pitch(fourth_note).midi is not None:
+                            fourth_midi = pitch.Pitch(fourth_note).midi
+                            if fourth_midi >= parameters['range']['fourth_midi']['min'] and fourth_midi <= parameters['range']['fourth_midi']['max']:
+                                vl['position'][pos]['fourth']['octaves'].append(fourth_note)
+                                vl['position'][pos]['fourth']['midi'].append(fourth_midi)
+
+                    if actSixth != '':
+                        sixth_note = actSixth + str(i)
+                        if pitch.Pitch(sixth_note).midi is not None:
+                            sixth_midi = pitch.Pitch(sixth_note).midi
+                            if sixth_midi >= parameters['range']['sixth_midi']['min'] and sixth_midi <= parameters['range']['sixth_midi']['max']:
+                                vl['position'][pos]['sixth']['octaves'].append(sixth_note)
+                                vl['position'][pos]['sixth']['midi'].append(sixth_midi)
+
+        ### Create combinations on vl ###
+
+        act_chord_pos = -1
+
+        for vl_pos in vl['position']:
+            
+            act_chord_pos += 1
+
+            # Extract 'bass' and 'third' ... octaves for each chord
+            bass_octaves = [x for x in vl_pos['bass']['octaves']]
+            third_octaves = [x for x in vl_pos['third']['octaves']]
+            seventh_octaves = [x for x in vl_pos['seventh']['octaves']]
+            fifth_octaves = [x for x in vl_pos['fifth']['octaves']]
+            second_octaves = [x for x in vl_pos['second']['octaves']]
+            fourth_octaves = [x for x in vl_pos['fourth']['octaves']]
+            sixth_octaves = [x for x in vl_pos['sixth']['octaves']]
+
+            result = ''
+            result_scale = ''
+            # Calculate cartesian product
+            # dur:48B | dur:7B2 | m:7A2
+            if (vl_pos['chord_type_id'] == '<037>' and vl_pos['chord_type_descr'] == 'minor triad') or (vl_pos['chord_type_id'] == '<037>' and vl_pos['chord_type_descr'] == 'major triad') or (vl_pos['chord_type_id'] == '<036>' and vl_pos['chord_type_descr'] == 'diminished triad') or (vl_pos['chord_type_id'] == '<048>' and vl_pos['chord_type_descr'] == 'augmented triad'): 
+                result = list(product(bass_octaves, third_octaves, fifth_octaves))
+                result_scale = list([8,3,5])
+
+            elif (vl_pos['chord_type_id'] == '<0258>' and vl_pos['chord_type_descr'] == 'dominant seventh chord') or (vl_pos['chord_type_id'] == '<0358>' and vl_pos['chord_type_descr'] == 'minor seventh chord') or (vl_pos['chord_type_id'] == '<0158>' and vl_pos['chord_type_descr'] == 'major seventh chord') or (vl_pos['chord_type_id'] == '<0148>' and vl_pos['chord_type_descr'] == 'minor-augmented tetrachord') :
+                result = list(product(bass_octaves, third_octaves, seventh_octaves))
+                result_scale = list([8,3,7])
+
+            elif (vl_pos['chord_type_id'] == '<0369>' and vl_pos['chord_type_descr'] == 'diminished seventh chord') or (vl_pos['chord_type_id'] == '<0258>' and vl_pos['chord_type_descr'] == 'half-diminished seventh chord') or (vl_pos['chord_type_id'] == '<0248>' and vl_pos['chord_type_descr'] == 'augmented seventh chord') or (vl_pos['chord_type_id'] == '<0148>' and vl_pos['chord_type_descr'] == 'augmented major tetrachord'):
+                result = list(product(bass_octaves, third_octaves, seventh_octaves, fifth_octaves))
+                result_scale = list([8,3,7,5])
+
+            # sus4
+            elif (vl_pos['chord_type_extracted'] == 'sus4'):
+                result = list(product(bass_octaves, fifth_octaves, fourth_octaves))
+                result_scale = list([8,5,4])
+
+            # sus2
+            elif (vl_pos['chord_type_extracted'] == 'sus2'):
+                result = list(product(bass_octaves, fifth_octaves, second_octaves))
+                result_scale = list([8,5,2])
+
+            # tensions
+            elif vl_pos['chord_type_id'] in ['<01358>']:  # m9
+                result = list(product(bass_octaves, third_octaves, seventh_octaves, second_octaves))
+            elif vl_pos['chord_type_id'] in ['<024579>']:  #m11
+                result = list(product(bass_octaves, third_octaves, seventh_octaves, fourth_octaves))
+            elif vl_pos['chord_type_id'] in ['<013568A>']:  #13
+                result = list(product(bass_octaves, third_octaves, seventh_octaves, sixth_octaves))
+
+            for vl_result in result:
+
+                item_vl = {
+                    'assessment': vl_result,
+                    'scale': result_scale,
+                    'voice':[{
+                        'note': None,
+                        'scale': None
+                    },
+                    {
+                        'note': None,
+                        'scale': None
+                    },
+                    {
+                        'note': None,
+                        'scale': None
+                    }
+                    ]
+                }
+
+                vl['position'][act_chord_pos]['vl'].append(item_vl)
+
+        pprint.pprint(vl)
+
+        #return pprint.pformat(v1)
+        pass
+
+    def transpose_qz(self, qz_start_txt = 'C', transpose_interval = 'p5', iteration_count = 8):
+        """ 
+        create transpose framework as main dictionary
+        input parameter:
+        - transpose_interval = 'p5'   # QZ_up::p5 // QZ_down:: -p5
+        - iteration_count = 8         # 8::(C--C#) // 8::(C--Cb)
+        """
+        print('--- START:', 'transpose_qz')
+
+        try:
+            qz_start = key.Key(qz_start_txt)
+            qz_prev = qz_start
+
+            vl0 = {'qz':[]}
+
+            itm0 = {'qz_id':None, 'qz_name':None, 'position':[]}
+            itm0['qz_id'] = 0
+            itm0['qz_name'] = qz_start.tonicPitchNameWithCase # .name / qz_start.mode / .tonic / .tonicPitchNameWithCase
+            vl0['qz'].append(itm0)
+            
+            for act_qz_id in range(1, iteration_count):
+                itm0 = {'qz_id':None, 'qz_name':None, 'position':[]}
+                qz_act = qz_prev.transpose(transpose_interval)
+                itm0['qz_id'] = act_qz_id
+                itm0['qz_name'] = qz_act.tonicPitchNameWithCase
+                vl0['qz'].append(itm0)
+
+                qz_prev = qz_act
+
+            #pprint.pprint(vl0)
                 
-        # Output schema
-        return song
-    
-    except FileNotFoundError:
-        print(f"File {filename} not found.")
-        return None
-    
-    except Exception as e:
-        print(f"Error reading file {filename}: {e}")
-        return None
+            print('--- END:', 'transpose_qz')
 
-def get_note_number(note_name):
-
-    # Split the note name into the note and the modifier
-    if len(note_name) > 1:
-        note = note_name[0]
-        modifier = note_name[1:]
-    else:
-        note = note_name
-        modifier = 'neutral'
-    
-    # Get the index of the note in the notes list
-    index = notes_basic.index(note)
-    
-    # Return the corresponding note value
-    return note_values[modifier][index]
-
-def get_note_name(note_number):
-    # Return the corresponding note name
-    return note_names[note_number]
-
-def get_pitches(root_note_enharm_correct, chord_name, inversion):
-
-    # Get the intervals of the chord
-    intervals = chords[chord_name]
-
-    root_note_enharm_equal = get_note_name(get_note_number(root_note_enharm_correct))
-    
-    # Convert the root note to an index
-    root_index = notes.index(root_note_enharm_equal)
-    
-    # Convert the intervals to pitches
-    pitches = [notes[(root_index + {'R' : 0,  # c
-                                    'm2': 1,  # c#/db
-                                    'm9': 1,  # c#/db
-                                    'M2': 2,  # d
-                                    'M9': 2,  # d
-                                    'm3': 3,  # d#/eb
-                                    '#9': 3,  # d#/eb
-                                    'M3': 4,  # e
-                                    'P4': 5,  # f
-                                    'P11': 5, # f
-                                    '#4': 6,  # f#/gb
-                                    'b5': 6,  # f#/gb
-                                    'P5': 7,  # g
-                                    '#5': 8,  # g#/ab
-                                    'm6': 8,  # g#/ab
-                                    'M6': 9,  # a
-                                    'M13': 9, # a
-                                    'b7': 9,  # a
-                                    'm7': 10, # a#/bb
-                                    'M7': 11, # b
-                                    '#7': 0   # c
-                                    }[interval]) % len(notes)] for interval in intervals]
-    
-    # Apply the inversion
-    for i in range(inversion):
-        pitches = pitches[1:] + [pitches[0]]
-    
-    return pitches
-
-def parse_chord_string(input_string):
-    """
-    Parses a chord string and returns detailed information about the chord.
-    
-    Parameters:
-    input_string (str): The chord string.
-    
-    Returns:
-    dict: A dictionary containing detailed information about the chord.
-
-    examples:
-       "G"       -- (G G G)
-       "G/f"     -- (G F G)
-       "G/C"     -- (G G C)
-       "G/f/C"   -- (G F C)
-    """
-    try:
-
-        chord_informations = {'root': None}
-
-        split_strings = input_string.split('/')
-
-        # split chordroot and chordtype
-        root, chord_type = separate_chordroot_chordtype(split_strings[0])
-
-        # print(get_pitches(root, chord_type, 0))
+            return vl0
         
-        # store chordroot note
-        chord_informations['root'] = root
-        chord_informations['type'] = chord_type
-        
-        if len(split_strings) > 1:
-            for string in split_strings[1:]:
-                if string[0].isupper():
-                    chord_informations['bass'] = string
-                else:
-                    chord_informations['inversion'] = string[0].upper() + string[1:]
+        except Exception as e:
+            print("!!! ERROR:", e)
+            return None
 
-        # fill in empty values for inversion and/or bass note with root note
-        chord_informations['inversion'] = chord_informations.get('inversion', chord_informations['root'])
-        chord_informations['bass'] = chord_informations.get('bass', chord_informations['root'])
+    def create_position(self, qz_name = 'C'):
+        """
+        position framework for creating voiceliading options
+        """
+        print('--- START:', 'create_position')
+        try:
+            vl = {'placeholder1':qz_name}
 
-        # make all notes to enharmonic EQUAL
-        chord_informations['root'] = get_note_name(get_note_number(chord_informations['root']))
-        chord_informations['inversion'] = get_note_name(get_note_number(chord_informations['inversion']))
-        chord_informations['bass'] = get_note_name(get_note_number(chord_informations['bass']))
+            #pprint.pprint(vl)
+                
+            print('--- END:', 'create_position')
 
-        # calculate inversion number
-        calc_inversion = get_pitches(root, chord_type, 0).index(chord_informations['inversion'])
-        chord_informations['inversion_id'] = calc_inversion
+            return vl
 
-        chord_informations['pitches'] = get_pitches(root, chord_type, calc_inversion)
+        except Exception as e:
+            print("!!! ERROR:", e)
+            return None
 
-        return chord_informations
-    
-    except Exception as e:
-        print(f"!!! Error parsing chord string {input_string}: {e}")
-        sys.exit()
-        return None
+    def vl_get_bass_note(self):
+        """
+        Methode um die Bassnote (tiefste Note) im Akkord zu identifiziern.
+        """
+        print('--- START vl_get_bass_note ---')
+        # Placeholder for function
+        pass
 
-def separate_chordroot_chordtype(chord):
-    """
-    Separates the root note and chord type from a chord string.
-    
-    Parameters:
-    chord (str): The chord string.
-    
-    Returns:
-    tuple: A tuple containing the root note and chord type.
-    """
-    # Iterate over chord types
-    for chord_type in chords.keys():
-        if chord.endswith(chord_type):
-            return chord[:-len(chord_type)], chord_type
+    def vl_get_bass_is_inversion(self):
+        """
+        Methode um für den spezialfall des voiceleading inversions im Bass zu identifizieren (z.B. C/E --> /3rd.; CMaj7/B --> spezialfall: /7th)
+        """
+        print('--- START vl_get_bass_is_inversion ---')
+        # Placeholder for function
+        pass
 
-    # If no match found, return the whole chord as root and 'M' (for Major Triad) as default type
-    return chord, 'M'
+    def vl_roll_out_notes(self):
+        """
+        Methode um alle kombinationen der im Akkord enthaltenen noten auszurollenK
+        """
+        print('--- START vl_roll_out_notes ---')
+        # Placeholder for function
+        pass
 
-def save_into_file(export_file_path, export_filename, chords, gettimesignature):
-    """
-    Stores the new chordprogression into musicxml / MXL / MIDI file.
-    """
-
-    print('timesignature:',gettimesignature)
-
-    if(len(chords)>0):
-
-        store_file = os.path.join(export_file_path, export_filename)
-        print("store_file:",store_file)
-
-        # Define the chords
-        # chords = ['C2 E3 G3 C4', 'G3 B3 D4', 'C4 E4 G4']
-
-        # Create a stream
-        s = stream.Stream()
-
-        s.append(metadata.Metadata(composer = "LUM"))
-        s.append(metadata.Metadata(title = "PROGRESSION"))
-
-        # Set the time signature to 3/4
-        s.metadata = metadata.Metadata()
-        s.metadata.timeSignature = meter.TimeSignature(gettimesignature)
-
-        # Set the time signature again to ensure it's included in the MusicXML output
-        s.append(meter.TimeSignature(gettimesignature))
-
-        count = 1
-        # Add the chords to the stream with the calculated duration
-        for c in chords:
-
-            # ----------------------
-            #c.simplifyEnharmonics(inPlace=True, keyContext=key.Key('A-'))
-            #ch.pitchedCommonName
-            # ----------------------
-
-            es = analysis.enharmonics.EnharmonicSimplifier(c.split())
-            es.bestPitches()
-
-            # get chord block
-            ch = chord.Chord(es)
-
-            # Römisches Numeral als Label hinzufügen
-            roman_numeral = roman.romanNumeralFromChord(ch, 'C', preferSecondaryDominants=True)
-            ch.addLyric(str(roman_numeral.figure))
-
-           
-
-            # label chord id
-            #ch.addLyric(str(count))
-            #ch.addLyric(sf)
-
-            # add data
-            s.append(ch)
-
-            count += 1
-
-        # Write to a MusicXML file
-        s.write('musicxml', fp=store_file + '.mxl')
-
-        # Write to a MIDI file
-        s.write('midi', fp=store_file + '.midi')
-
-        # --- OPEN IN MUSE4 ---
-        #### s.show("text")
-        #### s.show()
-    else:
-        print("!!! empty chords in txt content --> skipped creating output file.")
-
-    return "SUCCESS"
-
-def calculate_octaves(song):
-
-    """
-    Jede bass-note und jede note im akkord wird für die möglichen 88 töne auf dem klavier mit den oktaven versehen.
-    Hier werden die Oktaven für die Noten im Akkord und die Bassnote mit den entsprechenden Oktavbrüchen versieht.
-    """
-
-    chord_list = []
-
-    # mapping notennamen zu ids
-    note_names = {1: "C", 2: "C#", 3: "D", 4: "D#", 5: "E", 6: "F", 7: "F#", 8: "G", 9: "G#", 10: "A", 11: "A#", 12: "B"}
-
-    # iterate chords
-    for i in song['pitches']:
-
-        print('----')
-
-        # init previous note id zur identifikation des oktav-bruches
-        prev_note_id = 0
-        note_octave = 4
-        txt = ''
-
-        # Get Bassnote
-        bass_octave = 3
-        bass = i['bass']
-
-        txt = txt + bass + str(bass_octave)
-        print(bass, bass_octave)
-
-        # Iterate Notes in Chords
-        for note in i['pitches']:
-            # Get the ID of the note name using the get method
-            note_id = next((id for id, name in note_names.items() if name == note), None)
-
-            # Assign the ID to the note name in the mapping dictionary
-            if note_id is not None:
-
-                # identifikation des oktav-bruches
-                if note_id > prev_note_id:
-                    prev_note_id = note_id
-                else:
-                    prev_note_id = note_id
-                    note_octave += 1
-
-                txt = txt + ' ' + note + str(note_octave)
-                print(note, note_octave)
-  
-        chord_list.append(txt)
-        print('txt:',txt)
-
-    return chord_list
+    def vl_get_root_motion(self):
+        """
+        Methode um die Typen der Bass-Bewegung zwischen zwei Akkorden zu klassifizieren (z.B. QZ/2nd./3rd.).
+        """
+        print('--- START vl_get_root_motion ---')
+        # Placeholder for function
+        pass
 
 ### CALL FUNCTIONS SECTION ###
 
+"""
+s = stream.Score()
+p1 = stream.Part()
+p1.id = 'part1'
+p1.append(clef.TrebleClef())
+p1.insert(4, note.Note('C#4'))
+p1.insert(5.3, note.Rest())
+p2 = stream.Part()
+p2.id = 'part2'
+p2.append(clef.BassClef())
+p2.insert(2.12, note.Note('D-4', type='half'))
+p2.insert(5.5, note.Rest())
+s.insert(0, p1)
+s.insert(0, p2)
+if not s.isWellFormedNotation():
+    print("Die Partitur ist nicht wohlgeformt. Überprüfe die Elemente, Notenwerte und Reihenfolge.")
+    print(s.write('musicxml'))
+s.show('text', addEndTimes=True)
+s.write('musicxml', fp = 'test.mxl')
+s.write('midi', fp = 'test.midi')
+
+x = 1
+
+# Füge Metadaten hinzu
+#score.metadata = metadata.Metadata()
+#score.metadata.title = "Grand Staff Sheet"
+#score.metadata.composer = "Lutz"
+
+# Erstelle zwei Systeme (eines für den Violinschlüssel, eines für den Bassschlüssel)
+treble_staff = stream.Part()
+bass_staff = stream.Part()
+
+# Füge Violinschlüssel- und Bassschlüssel-Stimmen hinzu
+treble_clef = clef.TrebleClef()
+treble_staff.append(treble_clef)
+
+bass_clef = clef.BassClef()
+bass_staff.append(bass_clef)
+
+# Setze Taktart und Tonart
+treble_staff.append(meter.TimeSignature('4/4'))
+bass_staff.append(meter.TimeSignature('4/4'))
+treble_staff.append(key.KeySignature(0))
+bass_staff.append(key.KeySignature(0))
+
+# Füge ein paar Noten hinzu (Beispielnoten)
+treble_notes = ['C5', 'E5', 'G5', 'B5']
+bass_notes = ['C3', 'E3', 'G3', 'B3']
+
+for treble_note, bass_note in zip(treble_notes, bass_notes):
+    treble_staff.append(note.Note(treble_note, quarterLength=1))
+    bass_staff.append(note.Note(bass_note, quarterLength=1))
+
+# Füge die Stimmen zu den Systemen hinzu
+staff_group = layout.StaffGroup([treble_staff, bass_staff])
+
+# Füge die StaffGroup zur Partitur hinzu
+score.insert(0, staff_group)
+
+# Überprüfe, ob die Partitur wohlgeformt ist
+if not score.isWellFormedNotation():
+    print("Die Partitur ist nicht wohlgeformt. Überprüfe die Elemente, Notenwerte und Reihenfolge.")
+    print(score.write('musicxml'))
+
+# Konfiguriere das music21-Environment und zeige die Partitur an
+#configure.run()
+score.show()
+
+# Test call --------------------------------
+#cp = ChordProgression('D:\\git-repo\\projects\\chordtxt\\chords.txt')
+#cp.generate_chord_progression('output.mid', 'output.xml')
+#-------------------------------------------
+
+"""
+
 # Define the path to the chordtxt import-file to parse
 # You can edit this variable
-
 script_verzeichnis = os.path.dirname(os.path.realpath(__file__))
-file_path = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","01_ascending_basslines")
+
+#file_path = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","01_ascending_basslines")
+#file_path = os.path.join(script_verzeichnis, "txt", "03_reharmonization_techniques","10_basic_piano_voicing_techniques")
+file_path = os.path.join(script_verzeichnis, "txt", "02_chord_progressions_for_songwriters","11_chords")
+
 print("file_path:",file_path)
 
 txt_files = []
 
 #### MANUAL INPUT: only selected file processing (instead of batch job)
-#### txt_files.append("0001.txt")
-#### txt_files.append("0003.txt")
+#txt_files.append("0001.txt")
+txt_files.append("0002.txt")
+#txt_files.append("0003.txt")
 
 if(len(txt_files)==0):
     ### BATCH JOB: Hole Liste aller .txt-Dateien im angegebenen Ordner für den batch job
@@ -462,32 +787,24 @@ if(len(txt_files)==0):
 
 # Iterieren Sie über jede Datei und verarbeiten Sie sie
 for file_name in txt_files:
-    print("Processing file:", file_name)
+    print()
+    print("=== Processing file:", file_name, '===')
 
     file_title = file_name[:-4]
-    file_extension = '.txt'
 
-    file_name = os.path.join(file_path,file_title + file_extension)
-    print("source_file:",file_name)
+    file_name_without_extension = os.path.join(file_path, file_title)
 
     ### CALL FUNCTIONS ###
 
-    song = parse_file(file_name)
+    cp = ChordProgression(file_title, file_name_without_extension + '.txt', file_name_without_extension + '.mid', file_name_without_extension + '.mxl')
+
+    song = cp.parse_file()
+
     print('--song:',song)
 
-    chord_list = calculate_octaves(song)
-    print('chord_list:',chord_list)
+    #generate = cp.generate_chord_progression(song)
 
-    print(save_into_file(file_path, file_title, chord_list, song['meter']))
+    #chord_list = calculate_octaves(song)
+    #print('chord_list:',chord_list)
 
-### Test the functions ###
-
-#print(get_note_name(get_note_number('Dbbb')))
-#print(get_pitches('C', 'Maj7', 0))
-
-#example_string = "D#/bb/G"
-#print(parse_chord_string(example_string))
-
-#root, chord_type = separate_chordroot_chordtype('CbbSus2')
-#print('Root:', root)
-#print('Chord Type:', chord_type)
+    #print(save_into_file(file_path, file_title, chord_list, song['meter']))

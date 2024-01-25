@@ -1,0 +1,28 @@
+na
+na
+C
+false
+musicxml
+qz up
+key
+na bpm
+4/4
+C
+C7
+CM7
+CM9
+CM11
+CM13
+Cm
+Cm7
+Cm9
+Cm11
+Cm13
+CmM7
+Cm7b5
+Cdim
+Cdim7
+C+
+C+7
+Csus4
+Csus2

@@ -69,55 +69,41 @@ def import_transpose_midi(import_filename, export_filename):
     return "SUCCESS"
 
 def import_transpose_musicxml(import_filename, export_filename):
-    """
-    Transposing song into key of C Major.
-    Python code that uses the Musik21 library to import a MusicXML file, 
-    transpose it, and append the transposed part to the end 
-    of the original.
-    """
     orig_piece = converter.parse(import_filename)
 
-    # Check format mxl and analyze original key
     is_well_formed = orig_piece.isWellFormedNotation()
     print('orig_piece: ', is_well_formed)
     orig_key = orig_piece.analyze('key')
     print('orig_key:', orig_key)
-    
-    # Transpose to base key: C Major / A Minor
+
     target_key = pitch.Pitch('C')
     if orig_key.type == 'minor':
         target_key = pitch.Pitch('A')
 
-    # Calculate interval to transpose ti base key
     if target_key.name != orig_key.tonic.name:
         move = interval.Interval(orig_key.tonic, target_key)
         base_piece = orig_piece.transpose(move)
 
-    # Check new transposed base key
     print('base_piece:', base_piece.isWellFormedNotation())
     base_key = base_piece.analyze('key')
     print('base_key:', base_key)
 
-    # Transpose circle of fifths up and down.
     move = interval.Interval('-P5')
-    transp_piece = base_piece.transpose(move)
+    final_chords = []
 
-    print('transp_piece:', transp_piece.isWellFormedNotation())
+    for _ in range(7):
+        transp_piece = base_piece.transpose(move)
+        # Recursively search for ChordSymbol elements
+        chord_elements = transp_piece.recurse().getElementsByClass('ChordSymbol')
+        # Append the transposed chords to the final_chords list
+        final_chords.extend([str(chord) for chord in chord_elements])
 
-    #transp_piece.show()
-    
-    # append the transposed part to the end of the original.
-    new_score = stream.Stream()
-    new_score.append([orig_piece, base_piece, transp_piece])
+    print('Final Chords___:', final_chords)
 
-    print('new_score:', new_score.isWellFormedNotation())
+    print('final_chords well formated:', final_chords.isWellFormedNotation())
 
-    # Save new combines file
-    new_score.write('musicxml', "transposed_score.mxl")
-
-    # show new combined file.
-    #new_score.show("text")
-    #new_score.show()
+    # Save the final combined file
+    final_chords.write('musicxml', export_filename)
 
     return "SUCCESS"
 
