@@ -1,13 +1,15 @@
 na
 na
-C
+G
 false
 musicxml
 qz up
 key
 na bpm
 4/4
+F#7
+.
+Am7
+D7sus4
 Gsus2
-Esus2
-Gsus4
-Esus4
+GM7

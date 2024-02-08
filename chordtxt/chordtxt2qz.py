@@ -1,12 +1,22 @@
 """
 Python code that uses the music21 library to generate chord progressions in MIDI and MusicXML file formats from a given chord progression in TXT format. The user can transfer chord progressions from books or websites in a simple input format into a txt file. Voice leading possibilities are calculated for the transitions of the chords. The generated MIDI file can be practiced on the piano and expands your playing skills on the instrument. This develops new improvisation skills. The helper tool can be used to create new txt files for entering chord progressions and generate any number of input documents.
+
+TODO:
+    0) integrate "position" section inside of "qz-transpose" framework
+    1) slash bass notes
+        a) lowest note is bass note: skip vertical-vl variations that violates this condition
+        b) add root note into vertical-vl (above root note)
+    2) create stream in grand staff sheet to visualize all vl-vertical possibilities to chords
+    3) roll out vl-vertical options based on starting chord vl-vertical and connected using vl-horizontal rules and ranking
+    4) parameters: add min/max parameters for sus4 and sus2 chord types
+    5) input TXT can be used to enter roman numerales and keys. It will be automatically converted into chords.
 """
 from music21 import *
 import os
 import codecs
-import sys
 from itertools import product
 import pprint
+import json
 
 class ChordProgression:
     """
@@ -23,6 +33,9 @@ class ChordProgression:
 
         self.s = stream.Stream()
 
+        # Erstelle ein neues Notenblatt
+        self.sheet = stream.Score()
+
     def parse_file(self):
         """
         Parses a song file and extracts metadata and chords.
@@ -36,8 +49,7 @@ class ChordProgression:
 
         print('--- START parse_file ---')
 
-        #dirname = os.path.dirname(__file__)
-        #filename = os.path.join(dirname, fname)
+        self.grand_staff_sheet()
 
         filename = self.fname_source
 
@@ -66,7 +78,6 @@ class ChordProgression:
         # Add array for chords / pitches into the song schema and initialize values
         song["pos"] = []
         song["chords"] = []
-        #song["pitches"] = []
 
         try:
 
@@ -89,11 +100,6 @@ class ChordProgression:
 
                         song["pos"].append(i - len(meta))
                         song["chords"].append(actline)
-
-                        #song["pitches"].append(parse_chord_string(actline))
-                    
-            # Output schema
-            # return song
                         
             # The parsed output song needs to contain 11 lines to be well-processed.
             check_song = len(song)
@@ -134,6 +140,88 @@ class ChordProgression:
         gettimesignature = song['meter']  # e.g.: '4/4'
         getkey           = song['key']    # e.g.: "C"
 
+        # ---------------
+
+
+
+        # -------------------------
+
+        # Erstelle die beiden Notensysteme
+        bass_clef = clef.BassClef()
+        treble_clef = clef.TrebleClef()
+
+        # Füge die Notensysteme zum Notenblatt hinzu
+        self.sheet.append([bass_clef, treble_clef])
+
+        # Erstelle die beiden Notenlinien
+        left_hand = stream.Part()
+        right_hand = stream.Part()
+
+        # Füge die Notenlinien zum Notenblatt hinzu
+        self.sheet.insert(0, left_hand)
+        self.sheet.insert(0, right_hand)
+
+        # Erstelle die Noten
+        a1 = note.Note('A1')
+        a2 = note.Note('A2')
+        a3 = note.Note('A3')
+        c4 = note.Note('C4')
+        e4 = note.Note('E4')
+
+        # Füge die Noten zur linken Hand hinzu
+        left_hand.append([a1, a2])
+
+        # Erstelle den Akkord
+        #chord_tmp = chord.Chord([a3, c4, e4])
+
+        # Füge den Akkord zur rechten Hand hinzu
+        right_hand.append([a3, c4, e4])
+
+        # Verbinde die beiden Notenlinien mit einer Akkoladenklammer
+        # Verbinde die beiden Notenlinien mit einer Akkoladenklammer
+        bracket = spanner.Line(left_hand[-1], right_hand[0])
+        self.sheet.insert(0, bracket)
+
+        self.sheet.show('text')
+
+        # Write the stream to a MIDI file
+        self.sheet.write('midi', fp = 'sheet_0001.mid')
+
+        # Write the stream to a MusicXML file
+        self.sheet.write('musicxml', fp = 'sheet_0001.mxl')
+
+        # ---------------
+
+        # Load the .mxl file
+        score_template = converter.parse('grand_sheet_piano_0000.xml')
+
+        # Holen Sie sich die Partitur
+        partitur = score_template.getElementsByClass('Part')[0]
+
+        # Holen Sie sich den Violinschlüssel
+        violinschluessel = None
+        bassschluessel = None
+        for element in partitur.recurse():
+            if isinstance(element, clef.TrebleClef):
+                violinschluessel = element
+            elif isinstance(element, clef.BassClef):
+                bassschluessel = element
+
+        # Erstellen Sie eine neue Note
+        neue_note = note.Note('C#4')
+
+        # Fügen Sie die neue Note zum Violinschlüssel hinzu
+        violinschluessel.insert(0, neue_note)
+
+        # Save the modified score as a new .mxl file
+        score_template.write('musicxml', fp='grand_sheet_piano_0001.xml')
+        score_template.write('midi', fp='grand_sheet_piano_0001.mid')
+
+        # Show the modified score
+        score_template.show('text')
+
+        # ---------------
+
         # set title and composer
         self.s.append(metadata.Metadata(title = self.file_title, composer = 'Menzel, Lutz'))
 
@@ -142,11 +230,6 @@ class ChordProgression:
 
         # Set key
         self.s.append(key.Key(getkey))
-
-        # Open the txt file and read the chords
-        #with open(self.txt_file, 'r') as f:
-            #chords = f.read().splitlines()
-            #print('chords:',chords)
 
         chords = song['chords']
         print('chords:',chords)
@@ -264,42 +347,67 @@ class ChordProgression:
         # define the range of generated octaves and midi note ids for each voice note.
         parameters = {
             'range':{
+                # global range for vl-vertical generation (min:1;max:5)
                 'octave':{
                     'min': 1,
                     'max': 5
                 },
+                # bass note is the lowest note (A1;F#3)
                 'bass_midi':{
                     'min': pitch.Pitch('A1').midi,
                     'max': pitch.Pitch('F#3').midi
                 },
+                # doubling the root above the bass note (in case of bass note is different to root)
                 'root_midi':{
-                    'min': pitch.Pitch('A1').midi,
-                    'max': pitch.Pitch('F#3').midi
+                    'min': pitch.Pitch('D3').midi,
+                    'max': pitch.Pitch('C5').midi
                 },
+                # 3rd. (e.g.: "C";"Cm";"C7";...)
                 'third_midi':{
                     'min': pitch.Pitch('D3').midi,
                     'max': pitch.Pitch('C5').midi
                 },
+                # 7th. (e.g.: "C7";"Cm7";...)
                 'seventh_midi':{
                     'min': pitch.Pitch('D3').midi,
                     'max': pitch.Pitch('C5').midi
                 },
+                # 5th. (e.g.: "C";"Cm";"C7";"Cdim";"Cdim7";"C+";"C+7";"Cm7b5";...)
                 'fifth_midi':{
                     'min': 48,
                     'max': 60
                 },
+                # add 6 = T13 (e.g. "Cm13")
                 'sixth_midi':{
                     'min': 48,
                     'max': 60
                 },
+                # 6-chord (instead of 5) (e.g.: "C6")
+                'sixth_chord_midi':{
+                    'min': 48,
+                    'max': 60
+                },
+                # add 4 = T11 (e.g. "Cm11")
                 'fourth_midi':{
                     'min': 48,
                     'max': 60
                 },
+                # sus4 (instead of third) (e.g. "Csus4")
+                'sus4_chord_midi':{
+                    'min': 48,
+                    'max': 60
+                },
+                # add 2 = T9 (e.g.: "C9", "C/D")
                 'second_midi':{
                     'min': 48,
                     'max': 60
                 },
+                # sus2 (instead of third) (e.g. "Csus2")
+                'sus2_chord_midi':{
+                    'min': 48,
+                    'max': 60
+                },
+                # OTHERS (Tensions) (e.g.: TBD.)
                 'tension_midi':{
                     'min': 48,
                     'max': 60
@@ -333,49 +441,82 @@ class ChordProgression:
         pos = -1
 
         for element in self.s.recurse():
+            
             if 'ChordSymbol' in element.classes:
+
+                chord_notes = element.pitchNames
+                found_chord_notes = []
 
                 pos += 1
 
+                # bass
                 actBass = ''
                 if element.bass() is not None:
                     actBass = element.bass().name
+                    actBassScale = -1   # placeholder value; TODO: calculate scale degree for bassnote (in case of inversion)
+                    found_chord_notes.append(actBass)
 
+                # root
                 actRoot = ''
                 if element.root() is not None:
                     actRoot = element.root().name
+                    found_chord_notes.append(actRoot)
 
+                # 3rd.
                 actThird = ''
                 if element.third is not None:
                     actThird = element.third.name
+                    found_chord_notes.append(actThird)
 
+                # 5th.
                 actFifth = ''
                 if element.fifth is not None:
                     actFifth = element.fifth.name
+                    found_chord_notes.append(actFifth)
 
+                # 7th.
                 actSeventh = ''
                 if element.seventh is not None:
                     actSeventh = element.seventh.name
+                    found_chord_notes.append(actSeventh)
 
+                # sus2-chord / add2 = T9
                 actSecond = ''
                 if element.getChordStep(2) is not None:
                     actSecond = element.getChordStep(2).name
+                    found_chord_notes.append(actSecond)
 
+                # sus4-chord / add4 = T11
                 actFourth = ''
                 if element.getChordStep(4) is not None:
                     actFourth = element.getChordStep(4).name
+                    found_chord_notes.append(actFourth)
 
+                # 6-chord / add6 = T13
                 actSixth = ''
                 if element.getChordStep(6) is not None:
                     actSixth = element.getChordStep(6).name
+                    found_chord_notes.append(actSixth)
 
-                # GENERATE TENSION LIST (get list of remaining chord-tones)
-                # TODO
+                # GENERATE TENSION LIST (get list of remaining (not mapped) chord-tones)
+                # e.g.: "B7add#15" --> T#15:"B#"
+                print(found_chord_notes)
+                print(chord_notes)
+                
+                tension_notes = []
+                tension_notes = [note for note in chord_notes if note not in found_chord_notes]
+                
+                # check, if all notes are mapped to the scale
+                if len(tension_notes) == 0:
+                    print("SUCCESS: All notes are mapped to the scale.")
+                else:
+                    print('!INFO: There are notes that are NOT mapped and added to remaining tension list:', tension_notes)
+
+                # ------------------
                     
                 normalOrder = element.normalOrder
                 firstPitch = normalOrder[0]
                 no = [(pc - firstPitch) % 12 for pc in normalOrder]
-                yy = chord.Chord.formatVectorString(no)
 
                 item = {
                         'pos': (pos + 1),
@@ -394,6 +535,8 @@ class ChordProgression:
                         'vl':[],
                         'bass':{
                             'note': actBass,
+                            # in case of inversions, convert bass into scalenumber
+                            'scale': actBassScale,      
                             'octaves': [],
                             'midi': []
                         },
@@ -433,7 +576,7 @@ class ChordProgression:
                             'midi': []
                         },
                         'tensions':[{
-                            'note':None,
+                            'note':tension_notes,
                             'octaves':[],
                             'midi':[]
                         }]
@@ -441,20 +584,50 @@ class ChordProgression:
 
                 vl['position'].append(item)
 
-                #chord_list.append(element.root().name)    # e.g.: C/G --> C
-                #chord_list.append(element.bass().name)    # e.g.: C/G --> G (Inversion)
-                #chord_list.append(actThird)
-                #chord_list.append(actFifth)
-                #chord_list.append(actSeventh)
-                                
-                #chord_list.append(element.figure)                  # e.g.: C, Gm, A7
-                #chord_list.append(element.pitchedCommonName)
-                #chord_list.append(element.primeForm)
-                #chord_list.append(element.root().nameWithOctave)    # e.g.: C/G --> C
-                #chord_list.append(element.bass().nameWithOctave)    # e.g.: C/G --> G (Inversion)
-
                 # calculate Bass and other notes VL variations in a given range.
                 for i in range(parameters['range']['octave']['min'], parameters['range']['octave']['max'] + 1):
+
+                    # check cases: 1) root note (no inversion) or 2) slash bass (inversion)
+                    isInRootPosition = True
+                    if actBass != actRoot:
+                        isInRootPosition = False
+                    
+                    # initialize variables
+                    isThirdDoubled = False
+                    isFifthDoubled = False
+                    isSeventhDoubled = False
+                    isSecondDoubled = False
+                    isFourthDoubled = False
+                    isSixthDoubled = False
+                    #isTensionsDoubled = False
+
+                    bass_scale = -1
+
+                    # case is inversion: bass note doubles maybe 3rd or 5th, or others
+                    if not isInRootPosition:
+                        if actBass == actThird:
+                            isThirdDoubled = True
+                            bass_scale = 3
+                        elif actBass == actFifth:
+                            isFifthDoubled = True
+                            bass_scale = 5
+                        elif actBass == actSeventh:
+                            isSeventhDoubled = True
+                            bass_scale = 7
+                        elif actBass == actSecond:
+                            isSecondDoubled = True
+                            bass_scale = 2
+                        elif actBass == actFourth:
+                            isFourthDoubled = True
+                            bass_scale = 4
+                        elif actBass == actSixth:
+                            isSixthDoubled = True
+                            bass_scale = 6
+                        # TODO: elif actBass == tension_notes
+                    else:
+                        bass_scale = 8
+
+                    # TODO: case sus2 / sus4
 
                     if actBass != '':
                         bass_note = actBass + str(i)
@@ -519,6 +692,8 @@ class ChordProgression:
                             if sixth_midi >= parameters['range']['sixth_midi']['min'] and sixth_midi <= parameters['range']['sixth_midi']['max']:
                                 vl['position'][pos]['sixth']['octaves'].append(sixth_note)
                                 vl['position'][pos]['sixth']['midi'].append(sixth_midi)
+                    
+                    # TODO: actTensions = ()...)
 
         ### Create combinations on vl ###
 
@@ -528,72 +703,182 @@ class ChordProgression:
             
             act_chord_pos += 1
 
+            # initialize variables
+            bass_octaves = ['']
+            root_octaves = ['']
+            third_octaves = ['']
+            seventh_octaves = ['']
+            fifth_octaves = ['']
+            second_octaves = ['']
+            fourth_octaves = ['']
+            sixth_octaves = ['']
+            #TODO: tensions_octaves = ['']
+
             # Extract 'bass' and 'third' ... octaves for each chord
             bass_octaves = [x for x in vl_pos['bass']['octaves']]
-            third_octaves = [x for x in vl_pos['third']['octaves']]
-            seventh_octaves = [x for x in vl_pos['seventh']['octaves']]
-            fifth_octaves = [x for x in vl_pos['fifth']['octaves']]
-            second_octaves = [x for x in vl_pos['second']['octaves']]
-            fourth_octaves = [x for x in vl_pos['fourth']['octaves']]
-            sixth_octaves = [x for x in vl_pos['sixth']['octaves']]
+
+            if not isInRootPosition:
+                root_octaves = [x for x in vl_pos['root']['octaves']]
+            
+            if not isThirdDoubled:
+                third_octaves = [x for x in vl_pos['third']['octaves']]
+
+            if not isSeventhDoubled:
+                seventh_octaves = [x for x in vl_pos['seventh']['octaves']]
+
+            if not isFifthDoubled:
+                fifth_octaves = [x for x in vl_pos['fifth']['octaves']]
+
+            if not isSecondDoubled:
+                second_octaves = [x for x in vl_pos['second']['octaves']]
+
+            if not isFourthDoubled:
+                fourth_octaves = [x for x in vl_pos['fourth']['octaves']]
+
+            if not isSixthDoubled:
+                sixth_octaves = [x for x in vl_pos['sixth']['octaves']]
+
+            # TODO: tensions_octaves = [...]
 
             result = ''
             result_scale = ''
             # Calculate cartesian product
             # dur:48B | dur:7B2 | m:7A2
             if (vl_pos['chord_type_id'] == '<037>' and vl_pos['chord_type_descr'] == 'minor triad') or (vl_pos['chord_type_id'] == '<037>' and vl_pos['chord_type_descr'] == 'major triad') or (vl_pos['chord_type_id'] == '<036>' and vl_pos['chord_type_descr'] == 'diminished triad') or (vl_pos['chord_type_id'] == '<048>' and vl_pos['chord_type_descr'] == 'augmented triad'): 
-                result = list(product(bass_octaves, third_octaves, fifth_octaves))
-                result_scale = list([8,3,5])
+                
+                """
+                if isInRootPosition:
+                    result = list(product(bass_octaves, third_octaves, fifth_octaves))
+                    result_scale = list([8,3,5])
+                else:
+                    result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves))
+                    result_scale = list([actBassScale,8,3,5])
+                """
+
+                result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves))
+                result_scale = list([bass_scale,8,3,5])
 
             elif (vl_pos['chord_type_id'] == '<0258>' and vl_pos['chord_type_descr'] == 'dominant seventh chord') or (vl_pos['chord_type_id'] == '<0358>' and vl_pos['chord_type_descr'] == 'minor seventh chord') or (vl_pos['chord_type_id'] == '<0158>' and vl_pos['chord_type_descr'] == 'major seventh chord') or (vl_pos['chord_type_id'] == '<0148>' and vl_pos['chord_type_descr'] == 'minor-augmented tetrachord') :
-                result = list(product(bass_octaves, third_octaves, seventh_octaves))
-                result_scale = list([8,3,7])
+
+                if isInRootPosition:
+                    result = list(product(bass_octaves, third_octaves, seventh_octaves))
+                    result_scale = list([8,3,7])
+                else:
+                    result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves))
+                    result_scale = list([actBassScale,8,3,7])
 
             elif (vl_pos['chord_type_id'] == '<0369>' and vl_pos['chord_type_descr'] == 'diminished seventh chord') or (vl_pos['chord_type_id'] == '<0258>' and vl_pos['chord_type_descr'] == 'half-diminished seventh chord') or (vl_pos['chord_type_id'] == '<0248>' and vl_pos['chord_type_descr'] == 'augmented seventh chord') or (vl_pos['chord_type_id'] == '<0148>' and vl_pos['chord_type_descr'] == 'augmented major tetrachord'):
-                result = list(product(bass_octaves, third_octaves, seventh_octaves, fifth_octaves))
-                result_scale = list([8,3,7,5])
+
+                if isInRootPosition:
+                    result = list(product(bass_octaves, third_octaves, seventh_octaves, fifth_octaves))
+                    result_scale = list([8,3,7,5])
+                else:
+                    result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, fifth_octaves))
+                    result_scale = list([actBassScale,8,3,7,5])
 
             # sus4
             elif (vl_pos['chord_type_extracted'] == 'sus4'):
-                result = list(product(bass_octaves, fifth_octaves, fourth_octaves))
-                result_scale = list([8,5,4])
+
+                if isInRootPosition:
+                    result = list(product(bass_octaves, fifth_octaves, fourth_octaves))
+                    result_scale = list([8,5,4])
+                else:
+                    result = list(product(bass_octaves, root_octaves, fifth_octaves, fourth_octaves))
+                    result_scale = list([actBassScale,8,5,4])
 
             # sus2
             elif (vl_pos['chord_type_extracted'] == 'sus2'):
-                result = list(product(bass_octaves, fifth_octaves, second_octaves))
-                result_scale = list([8,5,2])
-
+                
+                if isInRootPosition:
+                    result = list(product(bass_octaves, fifth_octaves, second_octaves))
+                    result_scale = list([8,5,2])
+                else:
+                    result = list(product(bass_octaves, root_octaves, fifth_octaves, second_octaves))
+                    result_scale = list([actBassScale,8,5,2])
             # tensions
             elif vl_pos['chord_type_id'] in ['<01358>']:  # m9
-                result = list(product(bass_octaves, third_octaves, seventh_octaves, second_octaves))
-            elif vl_pos['chord_type_id'] in ['<024579>']:  #m11
-                result = list(product(bass_octaves, third_octaves, seventh_octaves, fourth_octaves))
-            elif vl_pos['chord_type_id'] in ['<013568A>']:  #13
-                result = list(product(bass_octaves, third_octaves, seventh_octaves, sixth_octaves))
 
+                if isInRootPosition:
+                    result = list(product(bass_octaves, third_octaves, seventh_octaves, second_octaves))
+                    result_scale = list([8,3,7,9])
+                else:
+                    result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, second_octaves))
+                    result_scale = list([actBassScale,8,3,7,9])
+
+            elif vl_pos['chord_type_id'] in ['<024579>']:  #m11
+
+                if isInRootPosition:
+                    result = list(product(bass_octaves, third_octaves, seventh_octaves, fourth_octaves))
+                    result_scale = list([8,3,7,11])
+                else:
+                    result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, fourth_octaves))
+                    result_scale = list([actBassScale,8,3,7,11])
+
+            elif vl_pos['chord_type_id'] in ['<013568A>']:  #13
+
+                if isInRootPosition:
+                    result = list(product(bass_octaves, third_octaves, seventh_octaves, sixth_octaves))
+                    result_scale = list([8,3,7,13])
+                else:
+                    result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, sixth_octaves))
+                    result_scale = list([actBassScale,8,3,7,13])
+
+            # TODO: elif vl_pos['chord_type_id'] in ['...']:  #OTHER TENSIONS (remaining notes in chord)
+
+            # iterate all calculated vl-vertical variations
             for vl_result in result:
 
-                item_vl = {
-                    'assessment': vl_result,
-                    'scale': result_scale,
-                    'voice':[{
-                        'note': None,
-                        'scale': None
-                    },
-                    {
-                        'note': None,
-                        'scale': None
-                    },
-                    {
-                        'note': None,
-                        'scale': None
+                result_tuple_midi = []
+                for mm in vl_result:
+                    if mm != '':
+                        result_tuple_midi.append(pitch.Pitch(mm).midi)
+                    else:
+                        result_tuple_midi.append(-1)
+
+                # create tuples of notes and scale degrees
+                result_tuple = tuple(zip(vl_result, result_scale, result_tuple_midi))
+                
+                # remove empty items containing ''
+                result_tuple_clean = tuple(item for item in result_tuple if item[0] != '')
+
+                # Sortiere die Tupel nach den MIDI-Nummern
+                result_tuple_ordered = sorted(result_tuple_clean, key=lambda x: x[2])
+
+                # Erstelle eine Liste nur aus den gefilterten und sortierten Notennamen
+                note_names = [note[0] for note in result_tuple_ordered]
+                s = ' '.join(note_names)
+                ch = chord.Chord(s)
+
+                self.ss.append(ch)
+
+                print(ch)
+
+                # check, if bass note is lowest note in the calculated vl-vertical variations. if not, skip this entry.
+                bass_check = True
+                for nn in vl_result[1:]:
+                    if nn != '':
+                        if pitch.Pitch(nn).midi < pitch.Pitch(vl_result[0]).midi:
+                            bass_check = False
+                            print('!INFO:', 'bass check failed (lowest note):', vl_result, 'Skipped that vl-vertical variation for the the list.')
+                            break
+
+                # only in case bass note check is OK continue adding entry
+                if bass_check:
+
+                    # create new calculated vl-vertical variation item for the dictionary
+                    item_vl = {
+                        'note_scale': result_tuple_ordered,
+                        'assessment': 'e.g.: 10th spacing on top'
                     }
-                    ]
-                }
 
-                vl['position'][act_chord_pos]['vl'].append(item_vl)
+                    # add new item into the dictionary
+                    vl['position'][act_chord_pos]['vl'].append(item_vl)
 
-        pprint.pprint(vl)
+        # OUTPUT RESULT dictionary
+        #pprint.pprint(vl['position'][0])
+        pprint.pprint(vl['position'])
+
+        self.ss.write('musicxml', fp = 'test_0001.mxl')
 
         #return pprint.pformat(v1)
         pass
@@ -687,82 +972,46 @@ class ChordProgression:
         # Placeholder for function
         pass
 
-### CALL FUNCTIONS SECTION ###
+    def grand_staff_sheet(self):
+        """
+        Dieser Code erstellt ein Notenblatt mit einem Bass- und einem Violinschlüssel, die für die linke und rechte Hand des Klaviers verwendet werden. Die Noten A1 und A2 werden in der Basslinie für die linke Hand dargestellt, während die Noten A3, C4 und E4 als Akkord in der Violinlinie für die rechte Hand dargestellt werden. Die beiden Notenlinien sind durch eine Akkoladenklammer verbunden.
+        """
 
-"""
-s = stream.Score()
-p1 = stream.Part()
-p1.id = 'part1'
-p1.append(clef.TrebleClef())
-p1.insert(4, note.Note('C#4'))
-p1.insert(5.3, note.Rest())
-p2 = stream.Part()
-p2.id = 'part2'
-p2.append(clef.BassClef())
-p2.insert(2.12, note.Note('D-4', type='half'))
-p2.insert(5.5, note.Rest())
-s.insert(0, p1)
-s.insert(0, p2)
-if not s.isWellFormedNotation():
-    print("Die Partitur ist nicht wohlgeformt. Überprüfe die Elemente, Notenwerte und Reihenfolge.")
-    print(s.write('musicxml'))
-s.show('text', addEndTimes=True)
-s.write('musicxml', fp = 'test.mxl')
-s.write('midi', fp = 'test.midi')
+        p1 = stream.Part()
+        p2 = stream.Part()
+        p1.clef = clef.TrebleClef()
+        p2.clef = clef.BassClef()
+        p1.keySignature = key.Key('G')
+        p2.keySignature = key.Key('G')
+        p1.timeSignature = meter.TimeSignature('3/4')
+        p2.timeSignature = meter.TimeSignature('3/4')
+        p1.append(note.Note('C5', type='whole'))
+        p1.append(note.Note('D5', type='whole'))
+        p2.append(note.Note('C3', type='whole'))
+        p2.append(chord.Chord('D2 E3 G4'))
+        #p3 = stream.Part()
+        #p3.append(note.Note('F#4', type='whole'))
+        #p3.append(note.Note('G#4', type='whole'))
+        #p3.append(chord.Chord('D E G'))
+        sp = stream.Score()
+        sp.insert(0, p1)
+        sp.insert(0, p2)
+        #sp.insert(0, p3)
+        staffGroup1 = layout.StaffGroup([p1, p2],
+            name='Piano', abbreviation='Pno.', symbol='brace')
+        staffGroup1.barTogether = 'Mensurstrich'
+        sp.insert(0, staffGroup1)
+        #staffGroup2 = layout.StaffGroup([p3],
+        #    name='Xylophone', abbreviation='Xyl.', symbol='bracket')
+        #sp.insert(0, staffGroup2)
 
-x = 1
+        # Write the stream to a MIDI file
+        sp.write('midi', fp = 'sheet_0003.mid')
 
-# Füge Metadaten hinzu
-#score.metadata = metadata.Metadata()
-#score.metadata.title = "Grand Staff Sheet"
-#score.metadata.composer = "Lutz"
+        # Write the stream to a MusicXML file
+        sp.write('musicxml', fp = 'sheet_0003.mxl')
 
-# Erstelle zwei Systeme (eines für den Violinschlüssel, eines für den Bassschlüssel)
-treble_staff = stream.Part()
-bass_staff = stream.Part()
-
-# Füge Violinschlüssel- und Bassschlüssel-Stimmen hinzu
-treble_clef = clef.TrebleClef()
-treble_staff.append(treble_clef)
-
-bass_clef = clef.BassClef()
-bass_staff.append(bass_clef)
-
-# Setze Taktart und Tonart
-treble_staff.append(meter.TimeSignature('4/4'))
-bass_staff.append(meter.TimeSignature('4/4'))
-treble_staff.append(key.KeySignature(0))
-bass_staff.append(key.KeySignature(0))
-
-# Füge ein paar Noten hinzu (Beispielnoten)
-treble_notes = ['C5', 'E5', 'G5', 'B5']
-bass_notes = ['C3', 'E3', 'G3', 'B3']
-
-for treble_note, bass_note in zip(treble_notes, bass_notes):
-    treble_staff.append(note.Note(treble_note, quarterLength=1))
-    bass_staff.append(note.Note(bass_note, quarterLength=1))
-
-# Füge die Stimmen zu den Systemen hinzu
-staff_group = layout.StaffGroup([treble_staff, bass_staff])
-
-# Füge die StaffGroup zur Partitur hinzu
-score.insert(0, staff_group)
-
-# Überprüfe, ob die Partitur wohlgeformt ist
-if not score.isWellFormedNotation():
-    print("Die Partitur ist nicht wohlgeformt. Überprüfe die Elemente, Notenwerte und Reihenfolge.")
-    print(score.write('musicxml'))
-
-# Konfiguriere das music21-Environment und zeige die Partitur an
-#configure.run()
-score.show()
-
-# Test call --------------------------------
-#cp = ChordProgression('D:\\git-repo\\projects\\chordtxt\\chords.txt')
-#cp.generate_chord_progression('output.mid', 'output.xml')
-#-------------------------------------------
-
-"""
+### CALL FUNCTIONS SECTION ##
 
 # Define the path to the chordtxt import-file to parse
 # You can edit this variable
@@ -801,10 +1050,3 @@ for file_name in txt_files:
     song = cp.parse_file()
 
     print('--song:',song)
-
-    #generate = cp.generate_chord_progression(song)
-
-    #chord_list = calculate_octaves(song)
-    #print('chord_list:',chord_list)
-
-    #print(save_into_file(file_path, file_title, chord_list, song['meter']))

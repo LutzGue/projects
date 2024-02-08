@@ -1,0 +1,40 @@
+{"data":{
+    "template":{
+        "filename": "template\\template_0001.txt",
+        "filename_tmp1": "template\\template_0001.txt",
+        "target_folder": "txt\\04_the_berklee_book_of_jazz_harmony\\11_jazz_voicings",
+        "target_folder_tmp1": "txt\\02_chord_progressions_for_songwriters\\experimental",
+        "copies": 50
+    },
+    "file":{
+        "source_folder": "txt\\04_the_berklee_book_of_jazz_harmony\\11_jazz_voicings\\",
+        "source_folder_tmp1":"txt\\03_reharmonization_techniques\\10_basic_piano_voicing_techniques\\",
+        "source_folder_tmp2":"txt\\02_chord_progressions_for_songwriters\\00_introduction\\",
+        "source_folder_tmp3":"txt\\04_the_berklee_book_of_jazz_harmony\\11_jazz_voicings",
+        "source_folder_tmp4":"txt\\02_chord_progressions_for_songwriters\\01_ascending_basslines\\",
+        "source_files": ["0003.txt"],
+        "extension":{
+            "txt": ".txt",
+            "midi": ".mid",
+            "musicxml": ".mxl",
+            "roman": ".rom"
+            },
+        "prefix":{
+            "txt": "",
+            "midi": "",
+            "musicxml": "",
+            "roman": ""
+            },
+        "suffix":{
+            "txt": "",
+            "midi": "",
+            "musicxml": "",
+            "roman": ""
+            }
+    },
+    "transpose":{
+        "iterations": 8,
+        "interval": "-p5"
+        }
+    }
+}
