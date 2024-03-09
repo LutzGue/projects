@@ -1,6 +1,6 @@
 na
 na
-C,Major
+C
 false
 musicxml
 qz up
@@ -11,7 +11,7 @@ C
 .
 .
 .
-C
+.
 .
 .
 .

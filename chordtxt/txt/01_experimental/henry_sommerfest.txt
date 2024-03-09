@@ -1,0 +1,22 @@
+lum
+henry sommerfest
+E-
+false
+musicxml
+qz up
+key
+60 bpm
+4/4
+E-
+F
+Gm
+Cm
+Fm
+B-
+A-
+E-
+B-sus4
+B-
+A-
+E- add9
+C7sus4

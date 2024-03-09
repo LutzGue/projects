@@ -1,0 +1,16 @@
+lum
+experimental
+C
+false
+musicxml
+qz up
+key
+60 bpm
+4/4
+C
+Am/C
+C
+Dm7
+G
+G7
+C

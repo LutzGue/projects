@@ -1,6 +1,6 @@
 na
 na
-C,Major
+C
 false
 musicxml
 qz up
@@ -8,7 +8,7 @@ key
 na bpm
 4/4
 C
-Dm7add11
+Dm7 add11
 C/E
-Fadd9
+F add9
 C/G

@@ -7,3 +7,6 @@ qz up
 key
 na bpm
 4/4
+CM7 add13
+Am7 add9
+Dm7

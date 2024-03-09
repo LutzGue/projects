@@ -1,13 +1,13 @@
 na
 na
-C,Major
+C
 false
 musicxml
 qz up
 key
 na bpm
 4/4
-Cmaj9
+CMaj9
 Dm
 F
 G11

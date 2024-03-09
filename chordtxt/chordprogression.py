@@ -1,6 +1,7 @@
 """
+generation of chordprogressions, provided in txt files, transposed in keys.
+# TODO # BUG # NOTE # FIXME # HACK # XXX
 """
-
 from music21 import *
 import os
 import codecs
@@ -8,15 +9,17 @@ from itertools import product, combinations, groupby
 import pprint
 import json
 import datetime
+from parameters import parameters
 
 class ChordProgression:
     """
     """
-    def __init__(self, config):
+    def __init__(self, config, parameters):
         """
         """
         # imported parameters from config JSON file
         self.config = config
+        self.parameters = parameters
 
         # Define the path to the chordtxt import-file to parse
         self.script_path = os.path.dirname(os.path.realpath(__file__))
@@ -34,13 +37,14 @@ class ChordProgression:
         self.files = self.set_files()
         #pprint.pprint(self.files)
 
-        # start framework
+        # NOTE: start framework
         res = self.framework()
 
-        pass
+        return res
 
     def template(self):
         """
+        template generator for blank txt files in user defined project folders.
         """
         template_dateipfad = os.path.join(self.script_path, self.config['template']['filename'])
         zielordner = os.path.join(self.script_path, self.config['template']['target_folder'])
@@ -64,6 +68,7 @@ class ChordProgression:
 
     def framework(self):
         """
+        iterates through all defined files, transposing chord progressions in user defined keys.
         """
         iteration = 0
 
@@ -81,11 +86,16 @@ class ChordProgression:
             print('---', 'path:', txt_path)
             print('')
 
-            # read meta and chordprogressions from current input file (.txt)
+            # NOTE: read meta and chordprogressions from current input file (.txt)
             song = ''
             song = self.parse_file(txt_filename)
 
-            pprint.pprint(song)
+            # skip file if empty chord progressions (template only)
+            if (song == None):
+                print(f"!SKIPPED file {txt_title}.")
+                continue
+
+            ####pprint.pprint(song)
 
             # stage 2: iterate all transpose keys
 
@@ -135,21 +145,26 @@ class ChordProgression:
 
                     act_chord_type = song['chord_type'][chord_id - 1]
 
-                    # voice leading vertical
+                    # NOTE: voice leading vertical
+                    vlv = ''
                     vlv = self.voice_leading_vertical(act_transposed_chord, act_chord_type)
+                    if vlv == None: return None
+
                     vlv_list['position'].append(vlv)
-                    pprint.pprint(vlv)
+
+                    ### FINAL LIST of vlv ###
+                    ###pprint.pprint(vlv)
 
 
 
                 # voice leading horizontal
                 # vlh = self.voice_leading_horizontal('x','y')
 
-                # generate all voice leading VERTICAL and analyze interval matrix and write grand sheet into mxl and mid file.
-                # self.grand_staff_sheet_vlv(vlv_list, act_key['qz_name'])
+                #NOTE: generate all voice leading VERTICAL and analyze interval matrix and write grand sheet into mxl and mid file.
+                self.grand_staff_sheet_vlv(vlv_list, act_key['qz_name'], txt_title)
 
-                # generate all voice leading HORIZONTAL and analyze interval matrix and write grand sheet into mxl and mid files.
-                self.grand_staff_sheet_vlh(vlv_list, act_key['qz_name'])
+                #NOTE: generate all voice leading HORIZONTAL and analyze interval matrix and write grand sheet into mxl and mid files.
+                self.grand_staff_sheet_vlh(vlv_list, act_key['qz_name'], txt_title)
 
         self.writefile()
 
@@ -218,105 +233,14 @@ class ChordProgression:
         return file_list
 
     def voice_leading_vertical(self, act_chord, chord_type):
-        print('vlv:', act_chord, chord_type)
-
-        # define the range of generated octaves and midi note ids for each voice note.
-        parameters = {
-            'range':{
-                # global range for vl-vertical generation (min:1;max:5)
-                'octave':{
-                    'min': 1,
-                    'max': 5
-                },
-                'interval':{
-                    'max': 25,
-                    'min': 1,
-                    'skip': True
-                },
-                # bass note is the lowest note (A1;F#3)
-                'bass_midi':{
-                    'min': pitch.Pitch('A1').midi,
-                    'max': pitch.Pitch('F#3').midi
-                },
-                # doubling the root above the bass note (in case of bass note is different to root)
-                'root_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # 3rd. (e.g.: "C";"Cm";"C7";...)
-                'third_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # 7th. (e.g.: "C7";"Cm7";...)
-                'seventh_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # 5th. (e.g.: "C";"Cm";"C7";"Cdim";"Cdim7";"C+";"C+7";"Cm7b5";...)
-                'fifth_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # add 6 = T13 (e.g. "Cm13")
-                'sixth_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # 6-chord (instead of 5) (e.g.: "C6")
-                'sixth_chord_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # add 4 = T11 (e.g. "Cm11")
-                'fourth_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # sus4 (instead of third) (e.g. "Csus4")
-                'sus4_chord_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # add 2 = T9 (e.g.: "C9", "C/D")
-                'second_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # sus2 (instead of third) (e.g. "Csus2")
-                'sus2_chord_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                },
-                # OTHERS (Tensions) (e.g.: TBD.)
-                'tension_midi':{
-                    'min': pitch.Pitch('D3').midi,
-                    'max': pitch.Pitch('C5').midi
-                }
-            }
-        }
-
-        ### initial output dictionary for calculated voiceleading options. ###
-
-        #---------------------------
         """
-        # create dictionary framework for transposing (iterations in intervals using start key)
-        vl0 = self.transpose_qz('C', 'p5', 8)
-        
-        for act_qz in vl0['qz']:
-            
-            # calculate all possible voice leadings options for the chords in the current transposed key
-            tmp = self.create_position(act_qz['qz_name'])
-
-            # add positions into main dictionary framework for all transposed keys and loop again
-            vl0['qz'][act_qz['qz_id']]['position'].append(tmp)
-
-        # output final dictionary containing all transposed chords in all voice leadings
-        pprint.pprint(vl0)
+        Calculate voice leading vertical (VLV).
+        Mapping scale to chord and provide chord details.
         """
-        #---------------------------
+        print(f'--vlv, act_chord: {act_chord}, chord_type: {chord_type}')
 
-        #vl = {'position':[]}
+        # NOTE: define the range of generated octaves and midi note ids for each voice note.
+        # XXX --> self.parameters
 
         chord_notes = act_chord.pitchNames
         found_chord_notes = []
@@ -379,13 +303,10 @@ class ChordProgression:
         tension_notes = [note for note in chord_notes if note not in found_chord_notes]
         
         # check, if all notes are mapped to the scale
-        if len(tension_notes) == 0:
-            print("SUCCESS: All notes are mapped to the scale.")
-        else:
+        if len(tension_notes) != 0:
             print('!INFO: There are notes that are NOT mapped and added to remaining tension list:', tension_notes)
 
-        # ------------------
-            
+        ### NOTE: Generate a central list to map all scales to the current chord and provide all the details about the chord type.
         normalOrder = act_chord.normalOrder
         firstPitch = normalOrder[0]
         no = [(pc - firstPitch) % 12 for pc in normalOrder]
@@ -445,6 +366,7 @@ class ChordProgression:
                     'octaves':[],
                     'midi': []
                 },
+                # Add any remaining tones that could not be mapped into the "tensions" category.
                 'tensions':[{
                     'note':tension_notes,
                     'octaves':[],
@@ -452,10 +374,8 @@ class ChordProgression:
                 }]
             }
 
-        #vl['position'].append(item)
-
         # calculate Bass and other notes VL variations in a given range.
-        for i in range(parameters['range']['octave']['min'], parameters['range']['octave']['max'] + 1):
+        for i in range(self.parameters['range']['octave']['min'], self.parameters['range']['octave']['max'] + 1):
 
             # check cases: 1) root note (no inversion) or 2) slash bass (inversion)
             isInRootPosition = True
@@ -503,7 +423,7 @@ class ChordProgression:
                 bass_note = actBass + str(i)
                 if pitch.Pitch(bass_note).midi is not None:
                     bass_midi = pitch.Pitch(bass_note).midi
-                    if bass_midi >= parameters['range']['bass_midi']['min'] and bass_midi <= parameters['range']['bass_midi']['max']:
+                    if bass_midi >= self.parameters['range']['bass_midi']['min'] and bass_midi <= self.parameters['range']['bass_midi']['max']:
                         vl['bass']['octaves'].append(bass_note)
                         vl['bass']['midi'].append(bass_midi)
 
@@ -511,7 +431,7 @@ class ChordProgression:
                 root_note = actRoot + str(i)
                 if pitch.Pitch(root_note).midi is not None:
                     root_midi = pitch.Pitch(root_note).midi
-                    if root_midi >= parameters['range']['root_midi']['min'] and root_midi <= parameters['range']['root_midi']['max']:
+                    if root_midi >= self.parameters['range']['root_midi']['min'] and root_midi <= self.parameters['range']['root_midi']['max']:
                         vl['root']['octaves'].append(root_note)
                         vl['root']['midi'].append(root_midi)
 
@@ -519,7 +439,7 @@ class ChordProgression:
                 third_note = actThird + str(i)
                 if pitch.Pitch(third_note).midi is not None:
                     third_midi = pitch.Pitch(third_note).midi
-                    if third_midi >= parameters['range']['third_midi']['min'] and third_midi <= parameters['range']['third_midi']['max']:
+                    if third_midi >= self.parameters['range']['third_midi']['min'] and third_midi <= self.parameters['range']['third_midi']['max']:
                         vl['third']['octaves'].append(third_note)
                         vl['third']['midi'].append(third_midi)
 
@@ -527,7 +447,7 @@ class ChordProgression:
                 seventh_note = actSeventh + str(i)
                 if pitch.Pitch(seventh_note).midi is not None:
                     seventh_midi = pitch.Pitch(seventh_note).midi
-                    if seventh_midi >= parameters['range']['seventh_midi']['min'] and seventh_midi <= parameters['range']['seventh_midi']['max']:
+                    if seventh_midi >= self.parameters['range']['seventh_midi']['min'] and seventh_midi <= self.parameters['range']['seventh_midi']['max']:
                         vl['seventh']['octaves'].append(seventh_note)
                         vl['seventh']['midi'].append(seventh_midi)
 
@@ -535,7 +455,7 @@ class ChordProgression:
                 fifth_note = actFifth + str(i)
                 if pitch.Pitch(fifth_note).midi is not None:
                     fifth_midi = pitch.Pitch(fifth_note).midi
-                    if fifth_midi >= parameters['range']['fifth_midi']['min'] and fifth_midi <= parameters['range']['fifth_midi']['max']:
+                    if fifth_midi >= self.parameters['range']['fifth_midi']['min'] and fifth_midi <= self.parameters['range']['fifth_midi']['max']:
                         vl['fifth']['octaves'].append(fifth_note)
                         vl['fifth']['midi'].append(fifth_midi)
 
@@ -543,7 +463,7 @@ class ChordProgression:
                 second_note = actSecond + str(i)
                 if pitch.Pitch(second_note).midi is not None:
                     second_midi = pitch.Pitch(second_note).midi
-                    if second_midi >= parameters['range']['second_midi']['min'] and second_midi <= parameters['range']['second_midi']['max']:
+                    if second_midi >= self.parameters['range']['second_midi']['min'] and second_midi <= self.parameters['range']['second_midi']['max']:
                         vl['second']['octaves'].append(second_note)
                         vl['second']['midi'].append(second_midi)
 
@@ -551,7 +471,7 @@ class ChordProgression:
                 fourth_note = actFourth + str(i)
                 if pitch.Pitch(fourth_note).midi is not None:
                     fourth_midi = pitch.Pitch(fourth_note).midi
-                    if fourth_midi >= parameters['range']['fourth_midi']['min'] and fourth_midi <= parameters['range']['fourth_midi']['max']:
+                    if fourth_midi >= self.parameters['range']['fourth_midi']['min'] and fourth_midi <= self.parameters['range']['fourth_midi']['max']:
                         vl['fourth']['octaves'].append(fourth_note)
                         vl['fourth']['midi'].append(fourth_midi)
 
@@ -559,7 +479,7 @@ class ChordProgression:
                 sixth_note = actSixth + str(i)
                 if pitch.Pitch(sixth_note).midi is not None:
                     sixth_midi = pitch.Pitch(sixth_note).midi
-                    if sixth_midi >= parameters['range']['sixth_midi']['min'] and sixth_midi <= parameters['range']['sixth_midi']['max']:
+                    if sixth_midi >= self.parameters['range']['sixth_midi']['min'] and sixth_midi <= self.parameters['range']['sixth_midi']['max']:
                         vl['sixth']['octaves'].append(sixth_note)
                         vl['sixth']['midi'].append(sixth_midi)
             
@@ -606,11 +526,16 @@ class ChordProgression:
 
         result = ''
         result_scale = ''
+
+        # Calculate cartesian product
+        # result = chord_construction_plan(vl)
+
         # Calculate cartesian product
         # dur:48B | dur:7B2 | m:7A2
         if (vl['chord_type_id'] == '<037>' and vl['chord_type_descr'] == 'minor triad') or (vl['chord_type_id'] == '<037>' and vl['chord_type_descr'] == 'major triad') or (vl['chord_type_id'] == '<036>' and vl['chord_type_descr'] == 'diminished triad') or (vl['chord_type_id'] == '<048>' and vl['chord_type_descr'] == 'augmented triad'): 
             
             """
+            # is basic
             if isInRootPosition:
                 result = list(product(bass_octaves, third_octaves, fifth_octaves))
                 result_scale = list([8,3,5])
@@ -618,17 +543,34 @@ class ChordProgression:
                 result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves))
                 result_scale = list([actBassScale,8,3,5])
             """
-
-            result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves))
-            result_scale = list([bass_scale,8,3,5])
+            
+            """
+            # is extended to 4 part writing
+            if isInRootPosition:
+                result = list(product(bass_octaves, bass_octaves, third_octaves, fifth_octaves))
+                result_scale = list([bass_scale,8,3,5])
+            else:
+                result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves))
+                result_scale = list([bass_scale,8,3,5])
+            """
+            
+            # is extended to 4 part writing
+            if isInRootPosition:
+                result = list(product(bass_octaves, third_octaves, fifth_octaves))
+                result_scale = list([bass_scale,3,5])
+            else:
+                result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves))
+                result_scale = list([bass_scale,8,3,5])
 
         elif (vl['chord_type_id'] == '<0258>' and vl['chord_type_descr'] == 'dominant seventh chord') or (vl['chord_type_id'] == '<0358>' and vl['chord_type_descr'] == 'minor seventh chord') or (vl['chord_type_id'] == '<0158>' and vl['chord_type_descr'] == 'major seventh chord') or (vl['chord_type_id'] == '<0148>' and vl['chord_type_descr'] == 'minor-augmented tetrachord') :
 
             if isInRootPosition:
                 result = list(product(bass_octaves, third_octaves, seventh_octaves))
+                #result = result + list(product(bass_octaves, third_octaves, fifth_octaves, seventh_octaves))
                 result_scale = list([8,3,7])
             else:
                 result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves))
+                #result = result + list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves, seventh_octaves))
                 result_scale = list([actBassScale,8,3,7])
 
         elif (vl['chord_type_id'] == '<0369>' and vl['chord_type_descr'] == 'diminished seventh chord') or (vl['chord_type_id'] == '<0258>' and vl['chord_type_descr'] == 'half-diminished seventh chord') or (vl['chord_type_id'] == '<0248>' and vl['chord_type_descr'] == 'augmented seventh chord') or (vl['chord_type_id'] == '<0148>' and vl['chord_type_descr'] == 'augmented major tetrachord'):
@@ -650,6 +592,16 @@ class ChordProgression:
                 result = list(product(bass_octaves, root_octaves, fifth_octaves, fourth_octaves))
                 result_scale = list([actBassScale,8,5,4])
 
+        # 7sus4
+        elif (vl['chord_type_extracted'] == '7sus4'):
+
+            if isInRootPosition:
+                result = list(product(bass_octaves, fifth_octaves, fourth_octaves, seventh_octaves))
+                result_scale = list([8,5,4,7])
+            else:
+                result = list(product(bass_octaves, root_octaves, fifth_octaves, fourth_octaves, seventh_octaves))
+                result_scale = list([actBassScale,8,5,4,7])
+
         # sus2
         elif (vl['chord_type_extracted'] == 'sus2'):
             
@@ -659,8 +611,28 @@ class ChordProgression:
             else:
                 result = list(product(bass_octaves, root_octaves, fifth_octaves, second_octaves))
                 result_scale = list([actBassScale,8,5,2])
+
+        elif (vl['chord_type_extracted'] == '6'):    # 6
+            
+            if isInRootPosition:
+                result = list(product(bass_octaves, third_octaves, fifth_octaves, sixth_octaves))
+                result_scale = list([8,3,5,6])
+            else:
+                result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves, sixth_octaves))
+                result_scale = list([actBassScale,8,3,5,6])
+
         # tensions
-        elif vl['chord_type_id'] in ['<01358>']:  # m9
+        elif (
+               (vl['chord_type_extracted'] == 'm9')
+            or (vl['chord_type_extracted'] == '9')
+            or (vl['chord_type_extracted'] == 'm7 add9')
+            or (vl['chord_type_extracted'] == '7 add9')
+            or (vl['chord_type_extracted'] == 'Maj9')
+            or (vl['chord_type_extracted'] == 'maj9')
+            or (vl['chord_type_extracted'] == 'M9')
+            or (vl['chord_type_extracted'] == '7#9')
+            or (vl['chord_type_extracted'] == '7 add #9')
+            ):
 
             if isInRootPosition:
                 result = list(product(bass_octaves, third_octaves, seventh_octaves, second_octaves))
@@ -669,7 +641,8 @@ class ChordProgression:
                 result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, second_octaves))
                 result_scale = list([actBassScale,8,3,7,9])
 
-        elif vl['chord_type_id'] in ['<024579>']:  #m11
+        elif (vl['chord_type_id'] in ['<024579>','<023579>'] # m11 / 11
+            or vl['chord_type_extracted'] == 'm7 add11'):  # 7 add11
 
             if isInRootPosition:
                 result = list(product(bass_octaves, third_octaves, seventh_octaves, fourth_octaves))
@@ -678,7 +651,7 @@ class ChordProgression:
                 result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, fourth_octaves))
                 result_scale = list([actBassScale,8,3,7,11])
 
-        elif vl['chord_type_id'] in ['<013568A>']:  #13
+        elif vl['chord_type_id'] in ['<013568A>']:  # 13
 
             if isInRootPosition:
                 result = list(product(bass_octaves, third_octaves, seventh_octaves, sixth_octaves))
@@ -686,8 +659,33 @@ class ChordProgression:
             else:
                 result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, sixth_octaves))
                 result_scale = list([actBassScale,8,3,7,13])
+
+        elif vl['chord_type_extracted'] == 'M7 add13':  # M7 add13
+            if isInRootPosition:
+                result = list(product(bass_octaves, third_octaves, seventh_octaves, sixth_octaves))
+                result_scale = list([8,3,7,13])
+            else:
+                result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, sixth_octaves))
+                result_scale = list([actBassScale,8,3,7,13])
+
+        elif vl['chord_type_id'] in ['<01378>']:  # M7 add11
+            if isInRootPosition:
+                result = list(product(bass_octaves, third_octaves, seventh_octaves, fourth_octaves))
+                result_scale = list([8,3,7,11])
+            else:
+                result = list(product(bass_octaves, root_octaves, third_octaves, seventh_octaves, fourth_octaves))
+                result_scale = list([actBassScale,8,3,7,11])
+
+        elif vl['chord_type_extracted'] == 'add9':  # add9
+            if isInRootPosition:
+                result = list(product(bass_octaves, third_octaves, fifth_octaves, second_octaves))
+                result_scale = list([8,3,5,9])
+            else:
+                result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves, second_octaves))
+                result_scale = list([actBassScale,8,3,5,9])
+
         else:
-            print("!!! Unknown chord type:", vl['chord_type_extracted'], "No combinations processed.")
+            print(f"!!! Unknown chord type: [{vl['chord_type_extracted']}]. No combinations processed.")
 
         # TODO: elif vl_pos['chord_type_id'] in ['...']:  #OTHER TENSIONS (remaining notes in chord)
 
@@ -723,9 +721,9 @@ class ChordProgression:
             bass_check = True
             for nn in vl_result[1:]:
                 if nn != '':
-                    if pitch.Pitch(nn).midi < pitch.Pitch(vl_result[0]).midi:
+                    if pitch.Pitch(nn).midi <= pitch.Pitch(vl_result[0]).midi:
                         bass_check = False
-                        print('!INFO:', 'bass check failed (lowest note):', vl_result, 'Skipped that vl-vertical variation for the the list.')
+                        #print('!INFO:', 'bass check failed (lowest note):', vl_result, 'Skipped that vl-vertical variation for the the list.')
                         break
 
             # only in case bass note check is OK continue adding entry
@@ -741,6 +739,8 @@ class ChordProgression:
                     'min_semitones': '',
                     'is_in_max_range': None,
                     'is_in_min_range': None,
+                    'is_diminished_five': None,
+                    'is_minor_nine': None,
                     'chord_list': ch
                 }
 
@@ -750,13 +750,19 @@ class ChordProgression:
                 if act_assessment_item['status'] == True:
                     item_vl['assessment'] = act_assessment_item['analyze']
 
-                    # get max interval
+                    # check allowed intervals
+                    act_assessment_item['analyze']
+
+                    item_vl['is_diminished_five'] = any(map(lambda item: item['interval2'] in ['d5','A4'], act_assessment_item['analyze']))
+                    item_vl['is_minor_nine'] = any(map(lambda item: item['interval2'] == 'm9', act_assessment_item['analyze']))
+
+                    # get max interval for KPI in vlh ("post")
                     max_semitone = max(
                         act_assessment_item['analyze'], 
                         key=lambda x: x['interval_semitones']
                     )
                     item_vl['max_semitones'] = max_semitone
-                    item_vl['is_in_max_range'] = (max_semitone['interval_semitones'] <= parameters['range']['interval']['max'])
+                    item_vl['is_in_max_range'] = ((max_semitone['interval_semitones'] <= self.parameters['range']['interval']['max_ambitus']) and (max_semitone['interval_semitones'] >= self.parameters['range']['interval']['min_ambitus']))
 
                     # get min interval
                     min_semitone = min(
@@ -764,19 +770,27 @@ class ChordProgression:
                         key=lambda x: x['interval_semitones']
                     )
                     item_vl['min_semitones'] = min_semitone
-                    item_vl['is_in_min_range'] = (min_semitone['interval_semitones'] >= parameters['range']['interval']['min'])
+                    item_vl['is_in_min_range'] = (min_semitone['interval_semitones'] >= self.parameters['range']['interval']['min_interval'])
 
-                    # add new item into the dictionary
-                    vl['vl'].append(item_vl)
+                    # NOTE: check pre-limit interval parameters and filter out.
+                    if (max_semitone['interval_semitones'] <= self.parameters['range']['interval_pre_limiter']['max_ambitus']) and (max_semitone['interval_semitones'] >= self.parameters['range']['interval_pre_limiter']['min_ambitus']):
+                        # add new item into the dictionary
+                        vl['vl'].append(item_vl)
+                    #else:
+                        #print('!!!INFO: skipped, because of PRE-LIMIT INTERVAL is too high.')
+
                 else:
                     print('!!!', 'analyze_chord_intervals not processed all data.')
+            
+            pprint.pprint(len(vl['vl']))
+                    
+        # NOTE: Check if each chord contains minimum of 1 vlv variation.
+        if len(vl['vl']) == 0:
+            print(f'!!!ALERT: Missing variations in chord progression! Maybe because of too strict parameters filtered out. Please adjust parameters.')
+            ### NOTE: exit function!
+            return None
 
-        # OUTPUT RESULT dictionary
-        #pprint.pprint(vl['position'][0])
-        #pprint.pprint(vl)
-
-        #self.ss.write('musicxml', fp = 'test_0001.mxl')
-
+        # RESULT dictionary
         return vl
     
     def voice_leading_horizontal(self, vl_from, vl_to):
@@ -803,8 +817,16 @@ class ChordProgression:
             for act_qz_id in range(1, iteration_count):
                 itm0 = {'qz_id':None, 'qz_name':None, 'position':[]}
                 qz_act = qz_prev.transpose(transpose_interval)
-                itm0['qz_id'] = act_qz_id
-                itm0['qz_name'] = qz_act.tonicPitchNameWithCase
+
+                # enharmonic simplified
+                qz_act_enharmonic = pitch.Pitch(qz_act.tonicPitchNameWithCase).simplifyEnharmonic(mostCommon=False).name
+
+                if qz_act.mode == 'minor':
+                    qz_act_enharmonic = qz_act_enharmonic.lower()
+
+                #itm0['qz_name'] = qz_act.tonicPitchNameWithCase
+                itm0['qz_name'] = qz_act_enharmonic
+
                 vl0['qz'].append(itm0)
 
                 qz_prev = qz_act
@@ -897,8 +919,9 @@ class ChordProgression:
                         actline = line.strip()
 
                         # blank section or dot (.) character in chord progression means copy chord from previous
-                        if(actline == '' or actline == '.'): 
-                            actline = tmpactline
+                        if(actline == '' or actline == '.'):
+                            continue
+                            #actline = tmpactline
                         else: 
                             tmpactline = actline
 
@@ -906,7 +929,7 @@ class ChordProgression:
                         song["chords"].append(actline)
 
                         # parse chord-type
-                        act_chord_type = self.extract_chordtype(actline)
+                        act_chord_type = self.extract_chordtype(actline).strip()
                         song["chord_type"].append(act_chord_type)
 
                         # map roman numerals
@@ -962,7 +985,7 @@ class ChordProgression:
             print("!!! ERROR:", e)
             return None
         
-    def grand_staff_sheet_vlv(self, vlv_list, get_key = 'C', skip_interval_range = True):
+    def grand_staff_sheet_vlv(self, vlv_list, get_key = 'C', get_title = None, force_interval_range = True, no_minor_nine = True, no_diminished_five = True):
         """
         Dieser Code erstellt ein Notenblatt mit einem Bass- und einem Violinschlüssel, die für die linke und rechte Hand des Klaviers verwendet werden. Die Noten A1 und A2 werden in der Basslinie für die linke Hand dargestellt, während die Noten A3, C4 und E4 als Akkord in der Violinlinie für die rechte Hand dargestellt werden. Die beiden Notenlinien sind durch eine Akkoladenklammer verbunden.
         """
@@ -984,7 +1007,16 @@ class ChordProgression:
 
             for act_vlv in act_vlv_pos['vl']:
 
-                if not skip_interval_range or (skip_interval_range and act_vlv['is_in_max_range'] and act_vlv['is_in_min_range']):
+                if (
+                    (
+                        not force_interval_range 
+                        or (
+                                force_interval_range 
+                            and act_vlv['is_in_max_range'] 
+                            and act_vlv['is_in_min_range']
+                        )
+                    )
+                ):
 
                     msg_interval_check_max = ''
                     msg_interval_check_min = ''
@@ -1002,11 +1034,16 @@ class ChordProgression:
 
                     c.lyric = act_vlv_pos['chord_name'].replace('-','b')  + '\n' + roman.romanNumeralFromChord(harmony.ChordSymbol(act_vlv_pos['chord_name']), key.Key(get_key), preferSecondaryDominants=True).figure + act_msg  + msg_interval_check_max  + msg_interval_check_min
 
-                    print(act_vlh_chord)
+                    ####print(act_vlh_chord)
                     
                     p2.append(c)
-            
-        
+
+                else:
+                    print("SKIP vlv because of condition (Interval check) is not fulfilled.")
+
+            # insert a separator after each block
+            rest = note.Rest(quarterLength=1)
+            p2.append(rest)
         
         sp = stream.Score()
         sp.insert(0, p1)
@@ -1021,7 +1058,16 @@ class ChordProgression:
         sp.insert(0, staffGroup1)
 
         tmsp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        act_store_filename = 'generated_sheet_vlv_' + tmsp
+
+        act_store_filename = (
+              get_title 
+            + '_vlv_' 
+            + self.config['transpose']['interval'] 
+            + '_' 
+            + get_key 
+            + '_' 
+            + tmsp
+        )
 
         # Write the stream to a MIDI file
         sp.write('midi', fp = act_store_filename + '.mid')
@@ -1032,7 +1078,7 @@ class ChordProgression:
         # pianoroll
         #sp.plot('pianoroll')
 
-    def grand_staff_sheet_vlh(self, vlv_list, get_key = 'C', skip_interval_range = True):
+    def grand_staff_sheet_vlh(self, vlv_list, get_key = 'C', get_title = None, limit_result = 100000, force_interval_range = True, force_common_notes = True, use_second_best_common_notes = False, force_smooth_soprano_line = True, use_second_best_smooth_soprano_line = False, no_minor_nine = False, no_diminished_five = False):
         """
         Dieser Code erstellt ein Notenblatt mit einem Bass- und einem Violinschlüssel, die für die linke und rechte Hand des Klaviers verwendet werden. Die Noten A1 und A2 werden in der Basslinie für die linke Hand dargestellt, während die Noten A3, C4 und E4 als Akkord in der Violinlinie für die rechte Hand dargestellt werden. Die beiden Notenlinien sind durch eine Akkoladenklammer verbunden.
         """
@@ -1050,18 +1096,7 @@ class ChordProgression:
         p1.timeSignature = meter.TimeSignature('4/4')
         p2.timeSignature = meter.TimeSignature('4/4')
 
-        """
-        act_pos_id = 0
-        for act_pos in vlv_list['position']:
-            act_pos_id += 1
-
-            act_vlv_id = 0
-            for act_vlv in act_pos['vl']:
-                act_vlv_id += 1
-                print('**', act_pos_id, act_vlv_id, act_vlv['chord_list'])   
-        """
-
-        print(len(vlv_list['position']))
+        #print(len(vlv_list['position']))
               
         result = []
         act_pos_id = 0
@@ -1070,66 +1105,245 @@ class ChordProgression:
 
             act_vlv_id = 0
             for act_vlv in act_pos['vl']:
-                act_vlv_id += 1
-                result.append((act_pos_id, act_vlv_id, act_vlv['chord_list']))
 
+                #if not force_interval_range or (force_interval_range and act_vlv['is_in_max_range'] and act_vlv['is_in_min_range']):
+                
+                if (
+                    (
+                        not force_interval_range 
+                        or (
+                                force_interval_range 
+                            and act_vlv['is_in_max_range'] 
+                            and act_vlv['is_in_min_range']
+                        )
+                    )
+                    and
+                    (
+                        not no_minor_nine
+                        or (
+                                no_minor_nine
+                            and not act_vlv['is_minor_nine'] 
+                        )
+                    )
+                    and
+                    (
+                        not no_diminished_five
+                        or (
+                                no_diminished_five
+                            and not act_vlv['is_diminished_five'] 
+                        )
+                    )
+                ):
+
+                    #msg_interval_check_max = ''
+                    #msg_interval_check_min = ''
+                    #if not act_vlv['is_in_max_range']:
+                    #    msg_interval_check_max = '\ntoo high'          
+                    #if not act_vlv['is_in_min_range']:
+                    #    msg_interval_check_min = '\ntoo low'   
+
+                    act_vlv_id += 1
+                    result.append((act_pos_id, act_vlv_id, act_vlv['chord_list']))
+                
+                #else:
+                #    print("SKIP vlh because of condition (Interval check) is not fulfilled.")
+
+            # in case filtered out all possible vlv chords in a group (empty) skip processing
+            if (act_vlv_id == 0):
+                print(f"!!!SKIPPED vlh because of empty vlh chord group (filtered out condition).")
+                return None
+
+        print(f"Start grouping {get_title} Key {get_key}...")
         # Gruppieren Sie die Elemente in 'txt' nach ihrer Position (erste Spalte)
         grouped_txt = [list(g) for k, g in groupby(result, lambda x: x[0])]
 
+        # Berechne die Anzahl der möglichen Produkte
+        num_products = 1
+        for group in grouped_txt:
+            num_products *= len(group)
+
+        print(f"Start product {get_title} Key {get_key}: [{num_products}]...")
         # Erzeugen Sie alle Kombinationen
         combinations = list(product(*grouped_txt))
 
-        #vlh_count = len(combinations)
-        #print(vlh_count)
+        num_products_len = 0
+        num_products_len = len(combinations)
 
+        ###############################################################
+        ### ITERATE ALL COMBINATIONS (n-LIMITED results for safety) ###
+        ###############################################################
+
+        vlh_list = {'header':None, 'position':[]}
         act_vlh_id = 0
-        # Drucken Sie die ersten 5 Kombinationen
-        for combo in combinations[:1000]:
+
+        min_common_notes = 999999    # statistics for total min of common notes
+        max_common_notes = 0        # statistics for total max of common notes
+        
+        min_soprano_smooth = 99999    # statistics for total min of soprano smooth
+        max_soprano_smooth = 0        # statistics for total max of soprano smooth
+
+        combo_percent = 0
+        combo_percent_tmp = 0
+        combi_len = len(combinations[:limit_result])
+        print(f"...... {get_title} Key {get_key}: 0%")
+        for combo in combinations[:limit_result]:
             act_vlh_id += 1
 
-            if act_vlh_id > 1:
-                rest = note.Rest(quarterLength=1)
-                p2.append(rest)
-        
-            print(combo)       
+            combo_percent = round(((act_vlh_id / combi_len) * 100))
+            if (combo_percent > combo_percent_tmp + 9):
+                combo_percent_tmp = combo_percent
+                print(f"...... {get_title} Key {get_key}: {combo_percent}%")
 
-            for x in combo:
+            # add separator between each vlh blocks
+            #if act_vlh_id > 1:
+            #    rest = note.Rest(quarterLength=1)
+            #    p2.append(rest)
 
-                print('xxx',chord.Chord(x[2]))
-                p2.append(chord.Chord(x[2]))
+            # vlh block
+            #print(combo)      
+
+            # ANALYZING vlh
+            #print(f'\n### ANALYZING vlh ###')
+            combo_from = ''
+            combo_to = ''
+
+            common_notes_count = 0
+            common_notes_count_total = 0
+
+            soprano_smooth_count = 0
+            soprano_smooth_count_total = 0
+
+            ####if force_common_notes:
+            for y in range(0, len(combo) - 1):
+                combo_from = chord.Chord(combo[y][2]).pitches
+                combo_to = chord.Chord(combo[y + 1][2]).pitches
+                #print(f'from: {combo_from}\nto: {combo_to}')
+
+                ### Analyzing COMMON NOTES ###
+                """
+                Gemeinsamen Elemente aus zwei Listen identifizieren und in eine neue Liste schreiben.
+                """
+                # Identifizieren gemeinsame Elemente
+                result_common_notes = tuple(set(combo_from) & set(combo_to))
+                common_notes_count = len(result_common_notes)
+                common_notes_count_total += common_notes_count
+
+                item1 = {
+                    'common_notes_item':
+                    {
+                        'notes': result_common_notes,
+                        'count': common_notes_count
+                    }
+                }
+                #print(f'item1: {item1}')
+
+                # TODO: Identification of smooth soprano line in defined range.
+                if force_smooth_soprano_line:
+                    act_soprano_interval = abs(interval.Interval(combo_from[-1], combo_to[-1]).semitones)
+                    #print('force_smooth_soprano_line', combo_from[-1], combo_to[-1], act_soprano_interval)
+                    if (
+                            (act_soprano_interval <= self.parameters['range']['soprano']['max']) 
+                        and (act_soprano_interval >= self.parameters['range']['soprano']['min'])
+                    ):
+                        soprano_smooth_count = 1
+                        soprano_smooth_count_total += soprano_smooth_count
+                
+                # TODO: Counting 1 Focalpoint in soprano line
+                
+                # TODO: Analyzing horizontl INTERVAL vector
+
+                # TODO: in case 0 common vlh --> contrary motion S--B
+
+                item2 = {
+                    'count': common_notes_count_total,
+                    'count_soprano_smooth': soprano_smooth_count_total,
+                    'vlh':combo
+                }
+                #print(f'item2: {item2}')
+                vlh_list['position'].append(item2)
+
+                # calculate statistics for min max common notes
+                if min_common_notes > common_notes_count_total:
+                    min_common_notes = common_notes_count_total
+                if max_common_notes < common_notes_count_total:
+                    max_common_notes = common_notes_count_total
+
+                # calculate statistics for min max soprano smooth line
+                if min_soprano_smooth > soprano_smooth_count_total:
+                    min_soprano_smooth = soprano_smooth_count_total
+                if max_soprano_smooth < soprano_smooth_count_total:
+                    max_soprano_smooth = soprano_smooth_count_total
+
+            #for x in combo:
+                #print('xxx',chord.Chord(x[2]))
+
+                #vlh_chord_list.append(item)
+                ####p2.append(chord.Chord(x[2]))
+                
                 #c.lyric = act_vlh_id
 
-                # TODO: identification of common notes
+        item3 = {
+            'generated':act_vlh_id,     # amount of possible voice leading horizontal variations.
+            'min':min_common_notes,     # minimum common notes for sorting descending ranking.
+            'max':max_common_notes,     # maximum common notes for sorting descending ranking.
+            'min_soprano_smooth':min_soprano_smooth,     # minimum soprano smooth for sorting descending ranking.
+            'max_soprano_smooth':max_soprano_smooth,     # maximum soprano smooth for sorting descending ranking.
+            'key':get_key
+        }
+        #print(f'item3: {item3}\n')
+        vlh_list['header'] = item3
+        
+        #print(f'-- Generated {act_vlh_id} HORIZONTAL voice leadings in the Key of {get_key}, limit: {limit_result}), min: {min_common_notes}, max:{max_common_notes}.')
 
-                # TODO: calculation of horizontl interval vector
-        print('-- Generated', act_vlh_id, 'HORIZONTAL voice leadings.')
-        """
-        for act_vlv_pos in vlv_list['position']:
+        ########################
+        ### GENERATING SHEET ###
+        ########################
 
-            for act_vlv in act_vlv_pos['vl']:
+        pprint.pprint(vlh_list['header'])
 
-                if not skip_interval_range or (skip_interval_range and act_vlv['is_in_max_range'] and act_vlv['is_in_min_range']):
+        counter = 0
 
-                    msg_interval_check_max = ''
-                    msg_interval_check_min = ''
-                    if not act_vlv['is_in_max_range']:
-                        msg_interval_check_max = '\ntoo high'          
-                    if not act_vlv['is_in_min_range']:
-                        msg_interval_check_min = '\ntoo low'   
+        get_max = vlh_list['header']['max']
+        get_max_soprano_smooth = vlh_list['header']['max_soprano_smooth']
 
-                    act_vlh_chord = act_vlv['chord_list']
-                    c = chord.Chord(act_vlh_chord)
+        # 2nd best common note for strict all common notes
+        range_common_notes = 0
+        if force_common_notes:
+            if use_second_best_common_notes and (get_max > 1):
+                range_common_notes = (get_max - 1)
+            else:
+                range_common_notes = get_max
 
-                    act_msg = ''
-                    for j in act_vlv['assessment']:
-                        act_msg = act_msg + '\n' + j['txt']
+        # 2nd best smooth soprano line
+        range_soprano_smooth = 0
+        if force_smooth_soprano_line:
+            if use_second_best_smooth_soprano_line and (get_max_soprano_smooth > 1):
+                range_soprano_smooth = (get_max_soprano_smooth - 1)
+            else:
+                range_soprano_smooth = get_max_soprano_smooth
 
-                    c.lyric = act_vlv_pos['chord_name'].replace('-','b')  + '\n' + roman.romanNumeralFromChord(harmony.ChordSymbol(act_vlv_pos['chord_name']), key.Key(get_key), preferSecondaryDominants=True).figure + act_msg  + msg_interval_check_max  + msg_interval_check_min
+        print(f"--force_common_notes: {force_common_notes}, 2nd_best: {use_second_best_common_notes}, range_common_notes: {range_common_notes}, get_max: {get_max}")
+        print(f"--force_smooth_soprano_line: {force_smooth_soprano_line}, 2nd_best: {use_second_best_smooth_soprano_line}, range_soprano_smooth: {range_soprano_smooth}, get_max: {get_max_soprano_smooth}")
+        
+        # generate
+        for x in vlh_list['position']:
+            if (
+                    (x['count'] >= range_common_notes) 
+                and (x['count_soprano_smooth'] >= range_soprano_smooth)
+            ):
 
-                    print(act_vlh_chord)
-                    
-                    p2.append(c)
-        """
+                counter += 1
+
+                # add chord progression into lead sheet
+                for z in x['vlh']:
+                    p2.append(chord.Chord(z[2]))
+                    #c.lyric = act_vlh_id
+                
+                # insert a separator after each block
+                rest = note.Rest(quarterLength=1)
+                p2.append(rest)
+
+        print(f'--sheet vlh count: {counter}')
 
         sp = stream.Score()
         sp.insert(0, p1)
@@ -1141,7 +1355,18 @@ class ChordProgression:
         sp.insert(0, staffGroup1)
 
         tmsp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        act_store_filename = 'generated_sheet_vlh_' + tmsp
+
+        act_store_filename =  (
+            get_title 
+            + '_vlh_' 
+            + self.config['transpose']['interval'] 
+            + '_' 
+            + get_key 
+            + '_' 
+            + str(counter) 
+            + '_' 
+            + tmsp
+        )
 
         # Write the stream to a MIDI file
         sp.write('midi', fp = act_store_filename + '.mid')
@@ -1155,6 +1380,9 @@ class ChordProgression:
     def writefile(self):        
         pass
 
+    def chord_construction_plan(self, vl):
+        pass
+
 ### CALL FUNCTIONS ###
     
 # import config JSON
@@ -1165,10 +1393,14 @@ config = data['data']
 #pprint.pprint(config)
 
 # create class
-cp = ChordProgression(config)
+cp = ChordProgression(config, parameters)
 
-# create templates
-#cp.template()
+# NOTE: create templates
+#res = ''
+#res = cp.template()
+#print(res)
 
-# process start
-cp.start()
+# NOTE: process start
+res = ''
+res = cp.start()
+print(res)

@@ -1,0 +1,13 @@
+na
+na
+e
+false
+musicxml
+qz up
+key
+na bpm
+4/4
+Em
+G
+Am
+B/F#

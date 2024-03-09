@@ -1,0 +1,18 @@
+na
+Figure 3-5 3-6
+G
+false
+musicxml
+qz up
+G
+na bpm
+4/4
+G7
+CM7
+Cm7
+F7
+GM7
+B-7
+E-7
+Am7
+D7

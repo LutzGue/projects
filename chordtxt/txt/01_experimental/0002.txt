@@ -1,0 +1,11 @@
+lum
+experimental
+C
+false
+musicxml
+qz up
+key
+60 bpm
+4/4
+CM7
+F#m7 add9
