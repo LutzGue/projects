@@ -1,0 +1,26 @@
+0001 Experimental
+LUM
+2024-03-19
+V001
+C,Major
+120
+4/4
+# Phrase 1
+# PRE
+I:V
+# T-PROLONG
+I:I,T
+I:V64,[OSI]
+I:I6,T-INV
+I:vi64,T-SUB
+# MODULATION: I to vi
+I:I,T|vi:iii,PIV
+vi:i,t
+vi:V,D
+vi:i,t
+# IONN
+I:ii56
+# IAD
+I:V
+I:V7
+I:I,T

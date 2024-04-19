@@ -10,7 +10,7 @@
         "copies": 90
     },
     "file":{
-        "source_folder": "txt\\07_rikky\\",
+        "source_folder": "txt\\01_experimental\\",
         "source_folder_tmp1":"txt\\03_reharmonization_techniques\\10_basic_piano_voicing_techniques\\",
         "source_folder_tmp2":"txt\\02_chord_progressions_for_songwriters\\00_introduction\\",
         "source_folder_tmp3":"txt\\04_the_berklee_book_of_jazz_harmony\\11_jazz_voicings\\",
@@ -18,8 +18,9 @@
         "source_folder_tmp5":"txt\\05_die_musikausbildung_erich_wolf\\kadenzmodelle\\",
         "source_folder_tmp6":"txt\\01_experimental\\",
         "source_folder_tmp7": "txt\\06_piano_book_mark_levine\\",
+        "source_folder_tmp8": "txt\\07_rikky\\",
 
-        "source_files": [],
+        "source_files": ["0003.txt"],
 
         "extension":{
             "txt": ".txt",

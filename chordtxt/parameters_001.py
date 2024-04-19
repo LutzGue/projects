@@ -5,6 +5,13 @@ Define the range of generated octaves and midi note ids for each voice note.
 NOTE: If the ranges are too strictly limited, it can lead to the fact that no VLV or VLH can be generated.
 """
 parameters = {
+    'meta':{
+        'description':'3-note voicing, left and right hand, minimum of notes, respecting overtone series scale (no muddy sonds in low register)',
+        'created':'2024-01',
+        'updated':'2024-02; 2024-03',
+        'author':'LUM',
+        'version':10
+    },
     'range':{
 
         # --- PRE-FILTER (VERTICAL) ---

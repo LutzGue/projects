@@ -9,7 +9,9 @@ from itertools import product, combinations, groupby
 import pprint
 import json
 import datetime
-from parameters import parameters
+
+#from parameters_001 import parameters
+from parameters_002 import parameters
 
 class ChordProgression:
     """
@@ -185,7 +187,7 @@ class ChordProgression:
             # in case no file manually was provided by user, get a list of all files in the specific folder
             if(len(txt_files)==0):
                 ### BATCH JOB: Hole Liste aller .txt-Dateien im angegebenen Ordner für den batch job
-                txt_files = [f for f in os.listdir(file_path) if f.endswith(self.config['file']['extension']['txt'])]
+                txt_files = [f for f in os.listdir(file_path) if f.endswith(self.config['file']['extension']['rom'])]
 
             # Iterieren Sie über jede Datei und verarbeiten Sie sie
             for file in txt_files:
@@ -556,8 +558,8 @@ class ChordProgression:
             
             # is extended to 4 part writing
             if isInRootPosition:
-                result = list(product(bass_octaves, third_octaves, fifth_octaves))
-                result_scale = list([bass_scale,3,5])
+                result = list(product(bass_octaves, bass_octaves, third_octaves, fifth_octaves))
+                result_scale = list([bass_scale,8,3,5])
             else:
                 result = list(product(bass_octaves, root_octaves, third_octaves, fifth_octaves))
                 result_scale = list([bass_scale,8,3,5])

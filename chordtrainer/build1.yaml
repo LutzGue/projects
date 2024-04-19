@@ -1,0 +1,40 @@
+singel: &def
+  stammtoene: 
+    - C
+    - D
+    - E
+    - F
+    - G
+    - A
+    - B
+  chordtyp:
+    - major
+    - minor
+  vorzeichen:
+    - neutral
+    - kreuz
+    - x
+    - b
+    - bb
+  inversion:
+    - root
+    - 1st
+    - 2nd
+    - 3rd
+  shift:
+    - up
+    - down
+pick1: &def2
+  von:
+    <<: *def
+  nach:
+    <<: *def
+pick2: &def3
+  von:
+    <<: *def
+    chordtyp: "Vdom7"
+  nach:
+    name: "I"
+choice:
+  - <<: *def2
+  - <<: *def3

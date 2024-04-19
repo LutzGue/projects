@@ -1,0 +1,50 @@
+muss komplett sein: 
+  choice: true
+  track: 
+    - 2
+    - 3
+keine doppelten 3rd: true
+muss natürlich balanced sein: true
+track:
+  - data:
+      beschreibung:
+        lang: bass line
+        kurz: B
+      anzahl noten: 1
+      muss bassnote als tiefsten ton enthalten: true
+      schlüssel: Bass
+      muss root enthalten: true
+      noten range:
+        min: C0
+        max: C2
+      intervall range:
+        min: P1
+        max: P8
+  - data:
+      beschreibung:
+        lang: piano-left hand
+        kurz: LH
+      anzahl noten: 2
+      muss bassnote als tiefsten ton enthalten: true
+      schlüssel: Bass
+      muss root enthalten: true
+      noten range:
+        min: C0
+        max: C2
+      intervall range:
+        min: P1
+        max: P8
+  - data:
+      beschreibung:
+        lang: piano-right hand
+        kurz: RH
+      anzahl noten: 2
+      muss bassnote als tiefsten ton enthalten: false
+      schlüssel: Violin
+      muss root enthalten: true
+      noten range:
+        min: C0
+        max: C2
+      intervall range:
+        min: P1
+        max: P8

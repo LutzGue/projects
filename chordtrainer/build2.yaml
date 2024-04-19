@@ -1,0 +1,29 @@
+key: &key
+  - "C"
+  - "F"
+  - "G"
+substitution: &substitution
+  - ["I",5]
+  - ["I6",5]
+  - ["I46",5]
+pre: &pre
+  - [null,5]
+  - ["V",5]
+tonic-prolongation: &tonic-prolongation
+  - *substitution
+connection: &connection
+  - [null,5]
+  - ["ii",5]
+  - ["ii7",5]
+  - ["IV",5]
+cadence: &cadence
+  - "PAC":
+    - "V7"
+    - "I"
+  - "HC"
+  - "IC"
+song:
+  - *pre
+  - *tonic-prolongation
+  - *connection
+  - *cadence

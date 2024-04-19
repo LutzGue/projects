@@ -1,0 +1,29 @@
+{"data":{
+    "file":{
+        "source_folder": "rom\\01_experimental\\",
+        "source_files": [],
+        "extension":{
+            "txt": ".txt",
+            "midi": ".mid",
+            "musicxml": ".mxl",
+            "roman": ".rom"
+            },
+        "prefix":{
+            "txt": "",
+            "midi": "",
+            "musicxml": "",
+            "roman": ""
+            },
+        "suffix":{
+            "txt": "",
+            "midi": "",
+            "musicxml": "",
+            "roman": ""
+            }
+    },
+    "transpose":{
+        "iterations": 8,
+        "interval": "-p5"
+        }
+    }
+}
